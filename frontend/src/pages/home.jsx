@@ -2,86 +2,66 @@ import Navbar from "../components/Navbar"
 
 export default function Home() {
   return (
-    <div className="bg-black text-white min-h-screen">
+    <div className="min-h-screen bg-[#F5F7FB] text-[#111827]">
 
       <Navbar />
 
-      <div className="flex flex-col items-center justify-center text-center pt-32">
+      {/* HERO SECTION */}
+      <section className="max-w-7xl mx-auto px-6 pt-28 pb-24 text-center">
 
-        <h1 className="text-7xl font-bold text-blue-500">
-          TrustChain AI
-        </h1>
-
-        <p className="text-gray-400 mt-6 text-xl max-w-2xl">
-          AI-Powered Intelligent Document Verification & Fraud Detection Platform
+        <p className="text-[#3B82F6] font-semibold uppercase tracking-[0.2em] text-sm">
+          AI-Powered Verification Platform
         </p>
 
-        <button className="mt-8 px-8 py-3 bg-blue-600 rounded-xl hover:bg-blue-700 transition">
-          Upload Document
-        </button>
+        <h1 className="text-6xl md:text-7xl font-bold mt-8 leading-tight">
+          Verify Documents
+          <br />
+          With AI Precision
+        </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-12 mt-32">
+        <p className="text-gray-500 text-xl mt-8 max-w-3xl mx-auto leading-relaxed">
+          Detect tampering, analyze metadata, verify authenticity,
+          and generate intelligent fraud reports instantly.
+        </p>
 
-  <div className="bg-gray-900 p-8 rounded-2xl border border-gray-800">
-    <h2 className="text-2xl font-bold text-blue-400">
-      OCR Verification
-    </h2>
+        <div className="flex flex-col md:flex-row gap-6 justify-center mt-12">
 
-    <p className="text-gray-400 mt-4">
-      Extract and analyze text from uploaded documents using AI OCR technology.
-    </p>
-  </div>
+          <button className="bg-[#3B82F6] hover:bg-[#2563EB] transition text-white px-8 py-4 rounded-2xl font-medium shadow-lg">
+            Upload Document
+          </button>
 
-  <div className="bg-gray-900 p-8 rounded-2xl border border-gray-800">
-    <h2 className="text-2xl font-bold text-blue-400">
-      Fraud Detection
-    </h2>
+          <button className="bg-white border border-gray-200 px-8 py-4 rounded-2xl font-medium shadow-sm">
+            View Dashboard
+          </button>
 
-    <p className="text-gray-400 mt-4">
-      Detect tampered certificates, fake edits, and suspicious metadata instantly.
-    </p>
-  </div>
+        </div>
 
-  <div className="bg-gray-900 p-8 rounded-2xl border border-gray-800">
-    <h2 className="text-2xl font-bold text-blue-400">
-      AI Analytics
-    </h2>
+      </section>
 
-    <p className="text-gray-400 mt-4">
-      Generate intelligent fraud scores and detailed verification reports.
-    </p>
-  </div>
+      {/* STATS */}
+      <section className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-6 pb-24">
 
-</div>
-<div className="mt-32 text-center pb-20">
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center">
+          <h2 className="text-4xl font-bold text-[#3B82F6]">99%</h2>
+          <p className="text-gray-500 mt-2">Detection Accuracy</p>
+        </div>
 
-  <h2 className="text-4xl font-bold text-blue-500">
-    How It Works
-  </h2>
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center">
+          <h2 className="text-4xl font-bold text-[#3B82F6]">OCR</h2>
+          <p className="text-gray-500 mt-2">AI Text Extraction</p>
+        </div>
 
-  <div className="flex flex-col md:flex-row justify-center gap-10 mt-12">
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center">
+          <h2 className="text-4xl font-bold text-[#3B82F6]">AI</h2>
+          <p className="text-gray-500 mt-2">Fraud Detection</p>
+        </div>
 
-    <div className="bg-gray-900 p-6 rounded-xl w-60">
-      Upload Document
-    </div>
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center">
+          <h2 className="text-4xl font-bold text-[#3B82F6]">24/7</h2>
+          <p className="text-gray-500 mt-2">Secure Verification</p>
+        </div>
 
-    <div className="bg-gray-900 p-6 rounded-xl w-60">
-      AI Verification
-    </div>
-
-    <div className="bg-gray-900 p-6 rounded-xl w-60">
-      Fraud Analysis
-    </div>
-
-    <div className="bg-gray-900 p-6 rounded-xl w-60">
-      Generate Report
-    </div>
-
-  </div>
-
-</div>
-
-      </div>
+      </section>
 
     </div>
   )
