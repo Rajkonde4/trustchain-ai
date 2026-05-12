@@ -155,7 +155,7 @@ export default function Dashboard() {
 
   </div>
 
-  <div className="h-[350px]">
+ <div className="w-full h-[350px] min-w-0">
 
     <ResponsiveContainer width="100%" height="100%">
 

@@ -1,3 +1,6 @@
 node_modules
 dist
 .env
+venv
+backend/venv
+__pycache__

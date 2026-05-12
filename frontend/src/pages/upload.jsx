@@ -1,5 +1,6 @@
 import { useState } from "react"
 import Navbar from "../components/Navbar"
+import { uploadDocument } from "../services/api"
 
 export default function Upload() {
 
@@ -8,12 +9,17 @@ export default function Upload() {
 
   const fileType = selectedFile?.type
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files[0]
 
     if (file) {
-      setSelectedFile(file)
-    }
+
+  setSelectedFile(file)
+
+  const response = await uploadDocument(file)
+
+  console.log(response)
+}
   }
 
   const handleDragOver = (event) => {
