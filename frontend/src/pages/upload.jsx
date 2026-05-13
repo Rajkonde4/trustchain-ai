@@ -1,11 +1,14 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Navbar from "../components/Navbar"
 import { uploadDocument } from "../services/api"
 
 export default function Upload() {
 
   const [selectedFile, setSelectedFile] = useState(null)
+  const [ocrText, setOcrText] = useState("")
+  const [report, setReport] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef(null)
 
   const fileType = selectedFile?.type
 
@@ -18,7 +21,12 @@ export default function Upload() {
 
   const response = await uploadDocument(file)
 
-  console.log(response)
+console.log(response)
+
+setOcrText(response.extracted_text)
+setReport(response)
+
+
 }
   }
 
@@ -43,10 +51,18 @@ export default function Upload() {
     }
   }
 
-  const removeFile = () => {
-    setSelectedFile(null)
-  }
+const removeFile = () => {
 
+  setSelectedFile(null)
+
+  setOcrText("")
+
+  setReport(null)
+
+  if (fileInputRef.current) {
+    fileInputRef.current.value = ""
+  }
+}
   return (
     <div className="min-h-screen bg-[#F5F7FB] text-[#111827]">
 
@@ -127,6 +143,7 @@ export default function Upload() {
                 type="file"
                 className="hidden"
                 onChange={handleFileChange}
+                ref={fileInputRef}
               />
 
             </label>
@@ -184,6 +201,201 @@ export default function Upload() {
           </div>
 
         </div>
+
+        {
+  ocrText && (
+
+    <div className="mt-10 bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+
+      <h3 className="text-2xl font-semibold text-[#111827] mb-5">
+        Extracted Text
+      </h3>
+
+      <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 whitespace-pre-wrap text-gray-700 leading-relaxed">
+
+        {ocrText}
+
+      </div>
+
+    </div>
+
+  )
+}
+
+{
+  report && (
+
+    <div className="mt-10 bg-white border border-gray-200 rounded-3xl p-10 shadow-sm">
+
+      <div className="flex items-center justify-between mb-8">
+
+        <h2 className="text-3xl font-bold text-[#111827]">
+          Verification Report
+        </h2>
+
+        <div className="bg-green-50 text-green-600 px-4 py-2 rounded-xl font-semibold">
+          {report.fraud_risk} Risk
+        </div>
+
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {/* DOCUMENT CATEGORY */}
+        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+          <p className="text-gray-500 text-sm">
+            Document Category
+          </p>
+
+          <h3 className="text-xl font-semibold mt-2">
+            {report.document_category}
+          </h3>
+
+        </div>
+
+        {/* NAME */}
+        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+          <p className="text-gray-500 text-sm">
+            Name
+          </p>
+
+          <h3 className="text-xl font-semibold mt-2">
+            {report.name}
+          </h3>
+
+        </div>
+
+        {/* PAN ONLY */}
+        {
+          report.document_category === "PAN Card" && (
+
+            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+              <p className="text-gray-500 text-sm">
+                PAN Number
+              </p>
+
+              <h3 className="text-xl font-semibold mt-2">
+                {report.pan_number}
+              </h3>
+
+            </div>
+
+          )
+        }
+
+       {
+  report.document_category === "Aadhaar Card" && (
+
+    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+      <p className="text-gray-500 text-sm">
+        Aadhaar Number
+      </p>
+
+      <h3 className="text-xl font-semibold mt-2">
+        {report.aadhaar_number}
+      </h3>
+
+    </div>
+
+  )
+}
+
+{
+  report.document_category === "Invoice" && (
+
+    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+      <p className="text-gray-500 text-sm">
+        Invoice Number
+      </p>
+
+      <h3 className="text-xl font-semibold mt-2">
+        {report.invoice_number}
+      </h3>
+
+    </div>
+
+  )
+}
+
+{
+  report.document_category === "Invoice" && (
+
+    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+      <p className="text-gray-500 text-sm">
+        Total Amount
+      </p>
+
+      <h3 className="text-xl font-semibold mt-2">
+        {report.total_amount}
+      </h3>
+
+    </div>
+
+  )
+}
+
+{
+  report.document_category === "Aadhaar Card" && (
+
+    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+      <p className="text-gray-500 text-sm">
+        Gender
+      </p>
+
+      <h3 className="text-xl font-semibold mt-2">
+        {report.gender}
+      </h3>
+
+    </div>
+
+  )
+}
+        {/* DOB ONLY */}
+        {
+          report.document_category === "PAN Card" ||
+          report.document_category === "Aadhaar Card" && (
+
+            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+              <p className="text-gray-500 text-sm">
+                Date of Birth
+              </p>
+
+              <h3 className="text-xl font-semibold mt-2">
+                {report.dob}
+              </h3>
+
+            </div>
+
+          )
+        }
+
+        {/* CONFIDENCE */}
+        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+          <p className="text-gray-500 text-sm">
+            Confidence Score
+          </p>
+
+          <h3 className="text-xl font-semibold mt-2">
+            {report.confidence_score}%
+          </h3>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  )
+}
 
         {/* FEATURES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 pb-32">

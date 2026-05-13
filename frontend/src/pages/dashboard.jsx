@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react"
 import Navbar from "../components/Navbar"
+
 import {
   LineChart,
   Line,
@@ -10,14 +12,49 @@ import {
 
 export default function Dashboard() {
 
+  const [reports, setReports] = useState([])
+
+  useEffect(() => {
+
+    fetch("http://127.0.0.1:8000/reports")
+
+      .then((res) => res.json())
+
+      .then((data) => {
+
+        console.log(data)
+
+        setReports(data)
+
+      })
+
+  }, [])
+
+  // REAL ANALYTICS
+  const totalUploads = reports.length
+
+  const fraudDetected = reports.filter(
+    (report) => report.fraud_risk === "High"
+  ).length
+
+  const verifiedDocuments = reports.filter(
+    (report) => report.fraud_risk === "Low"
+  ).length
+
+  const accuracyRate =
+    totalUploads > 0
+      ? Math.round((verifiedDocuments / totalUploads) * 100)
+      : 0
+
+  // CHART DATA
   const fraudData = [
-  { month: "Jan", fraud: 12 },
-  { month: "Feb", fraud: 19 },
-  { month: "Mar", fraud: 8 },
-  { month: "Apr", fraud: 15 },
-  { month: "May", fraud: 10 },
-  { month: "Jun", fraud: 6 },
-]
+    { month: "Jan", fraud: 12 },
+    { month: "Feb", fraud: 19 },
+    { month: "Mar", fraud: 8 },
+    { month: "Apr", fraud: 15 },
+    { month: "May", fraud: 10 },
+    { month: "Jun", fraud: 6 },
+  ]
 
   return (
     <div className="min-h-screen bg-[#F5F7FB] text-[#111827]">
@@ -93,7 +130,7 @@ export default function Dashboard() {
               </p>
 
               <h2 className="text-4xl font-bold mt-4">
-                1,284
+                {totalUploads}
               </h2>
 
             </div>
@@ -105,7 +142,7 @@ export default function Dashboard() {
               </p>
 
               <h2 className="text-4xl font-bold mt-4 text-red-500">
-                87
+                {fraudDetected}
               </h2>
 
             </div>
@@ -117,7 +154,7 @@ export default function Dashboard() {
               </p>
 
               <h2 className="text-4xl font-bold mt-4 text-green-500">
-                1,197
+                {verifiedDocuments}
               </h2>
 
             </div>
@@ -129,7 +166,7 @@ export default function Dashboard() {
               </p>
 
               <h2 className="text-4xl font-bold mt-4 text-[#3B82F6]">
-                99%
+                {accuracyRate}%
               </h2>
 
             </div>
@@ -137,52 +174,52 @@ export default function Dashboard() {
           </div>
 
           {/* ANALYTICS CHART */}
-<div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+          <div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
 
-  <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8">
 
-    <div>
+              <div>
 
-      <p className="text-[#3B82F6] uppercase tracking-[0.2em] text-sm font-semibold">
-        Analytics
-      </p>
+                <p className="text-[#3B82F6] uppercase tracking-[0.2em] text-sm font-semibold">
+                  Analytics
+                </p>
 
-      <h2 className="text-3xl font-bold mt-3">
-        Fraud Detection Trends
-      </h2>
+                <h2 className="text-3xl font-bold mt-3">
+                  Fraud Detection Trends
+                </h2>
 
-    </div>
+              </div>
 
-  </div>
+            </div>
 
- <div className="w-full h-[350px] min-w-0">
+            <div className="w-full h-[350px] min-w-0">
 
-    <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%">
 
-      <LineChart data={fraudData}>
+                <LineChart data={fraudData}>
 
-        <XAxis dataKey="month" />
+                  <XAxis dataKey="month" />
 
-        <YAxis />
+                  <YAxis />
 
-        <Tooltip />
+                  <Tooltip />
 
-        <Line
-          type="monotone"
-          dataKey="fraud"
-          stroke="#3B82F6"
-          strokeWidth={4}
-        />
+                  <Line
+                    type="monotone"
+                    dataKey="fraud"
+                    stroke="#3B82F6"
+                    strokeWidth={4}
+                  />
 
-      </LineChart>
+                </LineChart>
 
-    </ResponsiveContainer>
+              </ResponsiveContainer>
 
-  </div>
+            </div>
 
-</div>
+          </div>
 
-          {/* RECENT ACTIVITY */}
+          {/* RECENT UPLOADS */}
           <div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
 
             <div className="flex items-center justify-between">
@@ -190,10 +227,6 @@ export default function Dashboard() {
               <h2 className="text-2xl font-bold">
                 Recent Uploads
               </h2>
-
-              <button className="text-[#3B82F6] font-medium">
-                View All
-              </button>
 
             </div>
 
@@ -206,9 +239,9 @@ export default function Dashboard() {
                   <tr className="text-left text-gray-500 border-b border-gray-100">
 
                     <th className="pb-4">Document</th>
-                    <th className="pb-4">Type</th>
-                    <th className="pb-4">Status</th>
-                    <th className="pb-4">Fraud Score</th>
+                    <th className="pb-4">Category</th>
+                    <th className="pb-4">Risk</th>
+                    <th className="pb-4">Score</th>
 
                   </tr>
 
@@ -216,71 +249,51 @@ export default function Dashboard() {
 
                 <tbody>
 
-                  <tr className="border-b border-gray-100">
+                  {
+                    reports.map((report) => (
 
-                    <td className="py-5">
-                      Aadhaar_Card.pdf
-                    </td>
+                      <tr
+                        key={report._id}
+                        className="border-b border-gray-100"
+                      >
 
-                    <td className="py-5">
-                      PDF
-                    </td>
+                        <td className="py-5">
+                          {report.filename}
+                        </td>
 
-                    <td className="py-5">
-                      <span className="bg-green-100 text-green-600 px-4 py-2 rounded-xl text-sm">
-                        Verified
-                      </span>
-                    </td>
+                        <td className="py-5">
+                          {report.document_category}
+                        </td>
 
-                    <td className="py-5">
-                      2%
-                    </td>
+                        <td className="py-5">
 
-                  </tr>
+                          <span
+                            className={`px-4 py-2 rounded-xl text-sm font-medium
+                              
+                              ${
+                                report.fraud_risk === "Low"
+                                  ? "bg-green-100 text-green-600"
+                                  : report.fraud_risk === "Medium"
+                                  ? "bg-yellow-100 text-yellow-600"
+                                  : "bg-red-100 text-red-600"
+                              }
+                            `}
+                          >
 
-                  <tr className="border-b border-gray-100">
+                            {report.fraud_risk}
 
-                    <td className="py-5">
-                      Degree_Certificate.pdf
-                    </td>
+                          </span>
 
-                    <td className="py-5">
-                      PDF
-                    </td>
+                        </td>
 
-                    <td className="py-5">
-                      <span className="bg-yellow-100 text-yellow-600 px-4 py-2 rounded-xl text-sm">
-                        Suspicious
-                      </span>
-                    </td>
+                        <td className="py-5">
+                          {report.confidence_score}%
+                        </td>
 
-                    <td className="py-5">
-                      68%
-                    </td>
+                      </tr>
 
-                  </tr>
-
-                  <tr>
-
-                    <td className="py-5">
-                      Passport.png
-                    </td>
-
-                    <td className="py-5">
-                      Image
-                    </td>
-
-                    <td className="py-5">
-                      <span className="bg-green-100 text-green-600 px-4 py-2 rounded-xl text-sm">
-                        Verified
-                      </span>
-                    </td>
-
-                    <td className="py-5">
-                      1%
-                    </td>
-
-                  </tr>
+                    ))
+                  }
 
                 </tbody>
 
