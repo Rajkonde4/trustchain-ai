@@ -3,22 +3,22 @@ import { useNavigate } from "react-router-dom"
 
 import Navbar from "../components/Navbar"
 
-
 export default function Upload() {
 
   const navigate = useNavigate()
 
   const [selectedFile, setSelectedFile] = useState(null)
 
-  const [ocrText, setOcrText] = useState("")
-
-  const [report, setReport] = useState(null)
-
   const [isDragging, setIsDragging] = useState(false)
+
+  const [isUploading, setIsUploading] = useState(false)
 
   const fileInputRef = useRef(null)
 
+  // =========================
   // PROTECTED PAGE
+  // =========================
+
   useEffect(() => {
 
     const token = localStorage.getItem(
@@ -34,14 +34,17 @@ export default function Upload() {
 
   const fileType = selectedFile?.type
 
-  // FILE UPLOAD
-  const handleFileChange = async (event) => {
+  // =========================
+  // UPLOAD FUNCTION
+  // =========================
 
-    const file = event.target.files[0]
+  const uploadDocument = async (file) => {
 
     if (!file) return
 
     setSelectedFile(file)
+
+    setIsUploading(true)
 
     try {
 
@@ -72,8 +75,11 @@ export default function Upload() {
 
       // INVALID TOKEN
       if (
+
         data.message === "Unauthorized"
+
         || data.message === "Invalid Token"
+
       ) {
 
         alert("Please Login Again")
@@ -85,9 +91,13 @@ export default function Upload() {
         return
       }
 
-      setOcrText(data.extracted_text)
-
-      setReport(data)
+      // REDIRECT TO RESULT PAGE
+      navigate(
+        "/result",
+        {
+          state: data
+        }
+      )
 
     } catch (error) {
 
@@ -95,9 +105,25 @@ export default function Upload() {
 
       alert("Upload Failed")
     }
+
+    setIsUploading(false)
   }
 
+  // =========================
+  // FILE CHANGE
+  // =========================
+
+  const handleFileChange = async (event) => {
+
+    const file = event.target.files[0]
+
+    uploadDocument(file)
+  }
+
+  // =========================
   // DRAG OVER
+  // =========================
+
   const handleDragOver = (event) => {
 
     event.preventDefault()
@@ -105,13 +131,19 @@ export default function Upload() {
     setIsDragging(true)
   }
 
+  // =========================
   // DRAG LEAVE
+  // =========================
+
   const handleDragLeave = () => {
 
     setIsDragging(false)
   }
 
+  // =========================
   // DROP FILE
+  // =========================
+
   const handleDrop = async (event) => {
 
     event.preventDefault()
@@ -120,57 +152,16 @@ export default function Upload() {
 
     const file = event.dataTransfer.files[0]
 
-    if (!file) return
-
-    setSelectedFile(file)
-
-    try {
-
-      const token = localStorage.getItem(
-        "token"
-      )
-
-      const formData = new FormData()
-
-      formData.append("file", file)
-
-      const response = await fetch(
-        "http://127.0.0.1:8000/upload",
-        {
-          method: "POST",
-
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-
-          body: formData
-        }
-      )
-
-      const data = await response.json()
-
-      console.log(data)
-
-      setOcrText(data.extracted_text)
-
-      setReport(data)
-
-    } catch (error) {
-
-      console.log(error)
-
-      alert("Upload Failed")
-    }
+    uploadDocument(file)
   }
 
+  // =========================
   // REMOVE FILE
+  // =========================
+
   const removeFile = () => {
 
     setSelectedFile(null)
-
-    setOcrText("")
-
-    setReport(null)
 
     if (fileInputRef.current) {
 
@@ -194,14 +185,20 @@ export default function Upload() {
           </p>
 
           <h1 className="text-5xl md:text-6xl font-bold mt-6 leading-tight">
+
             Upload Documents
             <br />
             For Intelligent Verification
+
           </h1>
 
           <p className="text-gray-500 mt-6 text-lg max-w-2xl mx-auto leading-relaxed">
-            Detect fraud, analyze metadata, extract text using OCR,
-            and generate AI-powered verification reports.
+
+            Detect fraud, analyze metadata,
+            extract text using OCR,
+            and generate AI-powered
+            verification reports.
+
           </p>
 
         </div>
@@ -210,13 +207,32 @@ export default function Upload() {
         <div className="mt-20 flex justify-center">
 
           <div
-            className={`w-full max-w-4xl rounded-3xl p-14 text-center shadow-xl transition hover:shadow-2xl hover:-translate-y-1 border-2 ${
-              isDragging
-                ? "border-[#3B82F6] bg-blue-50"
-                : "bg-white border border-gray-200"
-            }`}
+
+            className={`
+
+              w-full
+              max-w-4xl
+              rounded-3xl
+              p-14
+              text-center
+              shadow-xl
+              transition
+              hover:shadow-2xl
+              hover:-translate-y-1
+              border-2
+
+              ${
+                isDragging
+                  ? "border-[#3B82F6] bg-blue-50"
+                  : "bg-white border border-gray-200"
+              }
+
+            `}
+
             onDragOver={handleDragOver}
+
             onDragLeave={handleDragLeave}
+
             onDrop={handleDrop}
           >
 
@@ -244,32 +260,66 @@ export default function Upload() {
 
             {/* TITLE */}
             <h2 className="text-3xl font-semibold text-[#111827]">
-              Drag & Drop Documents
+
+              {
+                isUploading
+                  ? "Analyzing Document..."
+                  : "Drag & Drop Documents"
+              }
+
             </h2>
 
             {/* DESCRIPTION */}
             <p className="text-gray-500 mt-4">
-              Upload PDF, PNG, JPG, or scanned documents.
+
+              {
+                isUploading
+
+                  ? "OCR extraction, fraud analysis and intelligent verification in progress..."
+
+                  : "Upload PDF, PNG, JPG, or scanned documents."
+              }
+
             </p>
 
+            {/* LOADING */}
+            {
+              isUploading && (
+
+                <div className="mt-10 flex justify-center">
+
+                  <div className="w-16 h-16 border-4 border-blue-200 border-t-[#3B82F6] rounded-full animate-spin"></div>
+
+                </div>
+
+              )
+            }
+
             {/* BUTTON */}
-            <label className="inline-block mt-10 bg-[#3B82F6] hover:bg-[#2563EB] transition text-white px-8 py-4 rounded-2xl font-medium text-lg shadow-lg cursor-pointer">
+            {
 
-              Browse Files
+              !isUploading && (
 
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleFileChange}
-                ref={fileInputRef}
-              />
+                <label className="inline-block mt-10 bg-[#3B82F6] hover:bg-[#2563EB] transition text-white px-8 py-4 rounded-2xl font-medium text-lg shadow-lg cursor-pointer">
 
-            </label>
+                  Browse Files
+
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    ref={fileInputRef}
+                  />
+
+                </label>
+
+              )
+            }
 
             {/* SELECTED FILE */}
             {
 
-              selectedFile && (
+              selectedFile && !isUploading && (
 
                 <div className="mt-8 bg-blue-50 border border-blue-100 rounded-2xl px-6 py-5">
 
@@ -278,11 +328,15 @@ export default function Upload() {
                     <div className="text-left">
 
                       <p className="text-lg font-semibold text-[#111827] break-all">
+
                         {selectedFile.name}
+
                       </p>
 
                       <p className="text-sm text-gray-500 mt-1">
+
                         {fileType}
+
                       </p>
 
                     </div>
@@ -302,7 +356,9 @@ export default function Upload() {
                       </div>
 
                       <button
+
                         onClick={removeFile}
+
                         className="bg-red-50 hover:bg-red-100 text-red-500 px-4 py-2 rounded-xl text-sm font-medium transition"
                       >
 
@@ -323,106 +379,9 @@ export default function Upload() {
 
         </div>
 
-        {/* OCR TEXT */}
-        {
-
-          ocrText && (
-
-            <div className="mt-10 bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
-
-              <h3 className="text-2xl font-semibold text-[#111827] mb-5">
-                Extracted Text
-              </h3>
-
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 whitespace-pre-wrap text-gray-700 leading-relaxed">
-
-                {ocrText}
-
-              </div>
-
-            </div>
-
-          )
-        }
-
-        {/* REPORT */}
-        {
-
-          report && (
-
-            <div className="mt-10 bg-white border border-gray-200 rounded-3xl p-10 shadow-sm">
-
-              <div className="flex items-center justify-between mb-8">
-
-                <h2 className="text-3xl font-bold text-[#111827]">
-                  Verification Report
-                </h2>
-
-                <div className="bg-green-50 text-green-600 px-4 py-2 rounded-xl font-semibold">
-                  {report.fraud_risk} Risk
-                </div>
-
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-                  <p className="text-gray-500 text-sm">
-                    Document Category
-                  </p>
-
-                  <h3 className="text-xl font-semibold mt-2">
-                    {report.document_category}
-                  </h3>
-
-                </div>
-
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-                  <p className="text-gray-500 text-sm">
-                    Name
-                  </p>
-
-                  <h3 className="text-xl font-semibold mt-2">
-                    {report.name}
-                  </h3>
-
-                </div>
-
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-                  <p className="text-gray-500 text-sm">
-                    Confidence Score
-                  </p>
-
-                  <h3 className="text-xl font-semibold mt-2">
-                    {report.confidence_score}%
-                  </h3>
-
-                </div>
-
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-                  <p className="text-gray-500 text-sm">
-                    Verification Status
-                  </p>
-
-                  <h3 className="text-xl font-semibold mt-2">
-                    {report.verification_status}
-                  </h3>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          )
-        }
-
       </div>
 
     </div>
+
   )
 }
