@@ -1,22 +1,16 @@
-import { Link, useNavigate } from "react-router-dom"
-import { useAuth } from "../context/AuthContext"
+import { Link } from "react-router-dom"
 
 export default function Navbar() {
 
-  const navigate = useNavigate()
-
-  const { isAuthenticated, logout } = useAuth()
+  const token = localStorage.getItem(
+    "token"
+  )
 
   const handleLogout = () => {
 
-    // Clear Local Storage
     localStorage.clear()
 
-    // Auth Context Logout
-    logout()
-
-    // Redirect to Login
-    navigate("/login")
+    window.location.href = "/login"
   }
 
   return (
@@ -25,7 +19,9 @@ export default function Navbar() {
 
       {/* LOGO */}
       <h1 className="text-2xl font-bold text-[#111827]">
+
         TrustChain AI
+
       </h1>
 
       {/* NAV LINKS */}
@@ -35,29 +31,46 @@ export default function Navbar() {
           to="/"
           className="hover:text-[#3B82F6] transition"
         >
+
           Home
+
         </Link>
 
-        <Link
-          to="/upload"
-          className="hover:text-[#3B82F6] transition"
-        >
-          Upload
-        </Link>
+        {
 
-        <Link
-          to="/dashboard"
-          className="hover:text-[#3B82F6] transition"
-        >
-          Dashboard
-        </Link>
+          token && (
+
+            <>
+
+              <Link
+                to="/upload"
+                className="hover:text-[#3B82F6] transition"
+              >
+
+                Upload
+
+              </Link>
+
+              <Link
+                to="/dashboard"
+                className="hover:text-[#3B82F6] transition"
+              >
+
+                Dashboard
+
+              </Link>
+
+            </>
+
+          )
+        }
 
       </div>
 
       {/* AUTH BUTTON */}
       {
 
-        isAuthenticated ? (
+        token ? (
 
           <button
             onClick={handleLogout}

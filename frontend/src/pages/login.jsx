@@ -1,9 +1,7 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 
 export default function Login() {
-
-  const navigate = useNavigate()
 
   const [email, setEmail] = useState("")
 
@@ -11,9 +9,21 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false)
 
+  const [error, setError] = useState("")
+
   const handleLogin = async () => {
 
+    // VALIDATION
+    if (!email || !password) {
+
+      setError("Please fill all fields")
+
+      return
+    }
+
     setLoading(true)
+
+    setError("")
 
     try {
 
@@ -27,7 +37,6 @@ export default function Login() {
           },
 
           body: JSON.stringify({
-
             email,
             password
           })
@@ -38,32 +47,36 @@ export default function Login() {
 
       console.log(data)
 
+      // LOGIN SUCCESS
       if (data.access_token) {
 
+        // STORE TOKEN
         localStorage.setItem(
           "token",
           data.access_token
         )
 
+        // STORE USER
         localStorage.setItem(
           "user",
           JSON.stringify(data.user)
         )
 
-        alert("Login Successful")
-
-        navigate("/dashboard")
+        // FORCE REDIRECT
+        window.location.href = "/dashboard"
 
       } else {
 
-        alert(data.message)
+        setError(
+          data.message || "Invalid Credentials"
+        )
       }
 
     } catch (error) {
 
       console.log(error)
 
-      alert("Login Failed")
+      setError("Login Failed")
     }
 
     setLoading(false)
@@ -75,6 +88,7 @@ export default function Login() {
 
       <div className="bg-white shadow-2xl rounded-3xl p-10 w-full max-w-md">
 
+        {/* HEADER */}
         <div className="text-center">
 
           <h1 className="text-5xl font-bold text-[#3B82F6]">
@@ -87,8 +101,24 @@ export default function Login() {
 
         </div>
 
+        {/* ERROR MESSAGE */}
+        {
+
+          error && (
+
+            <div className="mt-6 bg-red-50 border border-red-200 text-red-500 p-4 rounded-2xl text-sm">
+
+              {error}
+
+            </div>
+
+          )
+        }
+
+        {/* FORM */}
         <div className="mt-10 space-y-6">
 
+          {/* EMAIL */}
           <div>
 
             <label className="text-sm font-medium">
@@ -98,7 +128,7 @@ export default function Login() {
             <input
               type="email"
               placeholder="Enter email"
-              className="w-full mt-2 p-4 rounded-2xl border border-gray-300 outline-none"
+              className="w-full mt-2 p-4 rounded-2xl border border-gray-300 outline-none focus:border-[#3B82F6]"
               value={email}
               onChange={(e) =>
                 setEmail(e.target.value)
@@ -107,6 +137,7 @@ export default function Login() {
 
           </div>
 
+          {/* PASSWORD */}
           <div>
 
             <label className="text-sm font-medium">
@@ -116,7 +147,7 @@ export default function Login() {
             <input
               type="password"
               placeholder="Enter password"
-              className="w-full mt-2 p-4 rounded-2xl border border-gray-300 outline-none"
+              className="w-full mt-2 p-4 rounded-2xl border border-gray-300 outline-none focus:border-[#3B82F6]"
               value={password}
               onChange={(e) =>
                 setPassword(e.target.value)
@@ -125,6 +156,7 @@ export default function Login() {
 
           </div>
 
+          {/* LOGIN BUTTON */}
           <button
             onClick={handleLogin}
             disabled={loading}
@@ -132,12 +164,30 @@ export default function Login() {
           >
 
             {
+
               loading
-              ? "Logging In..."
-              : "Login"
+                ? "Logging In..."
+                : "Login"
+
             }
 
           </button>
+
+          {/* SIGNUP LINK */}
+          <div className="text-center text-gray-500 text-sm">
+
+            Don’t have an account?
+
+            <Link
+              to="/signup"
+              className="text-[#3B82F6] font-medium ml-2 hover:underline"
+            >
+
+              Create Account
+
+            </Link>
+
+          </div>
 
         </div>
 
