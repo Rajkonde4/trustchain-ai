@@ -1,69 +1,185 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+
 import Navbar from "../components/Navbar"
-import { uploadDocument } from "../services/api"
+
 
 export default function Upload() {
 
+  const navigate = useNavigate()
+
   const [selectedFile, setSelectedFile] = useState(null)
+
   const [ocrText, setOcrText] = useState("")
+
   const [report, setReport] = useState(null)
+
   const [isDragging, setIsDragging] = useState(false)
+
   const fileInputRef = useRef(null)
+
+  // PROTECTED PAGE
+  useEffect(() => {
+
+    const token = localStorage.getItem(
+      "token"
+    )
+
+    if (!token) {
+
+      navigate("/login")
+    }
+
+  }, [])
 
   const fileType = selectedFile?.type
 
+  // FILE UPLOAD
   const handleFileChange = async (event) => {
+
     const file = event.target.files[0]
 
-    if (file) {
+    if (!file) return
 
-  setSelectedFile(file)
+    setSelectedFile(file)
 
-  const response = await uploadDocument(file)
+    try {
 
-console.log(response)
+      const token = localStorage.getItem(
+        "token"
+      )
 
-setOcrText(response.extracted_text)
-setReport(response)
+      const formData = new FormData()
 
+      formData.append("file", file)
 
-}
+      const response = await fetch(
+        "http://127.0.0.1:8000/upload",
+        {
+          method: "POST",
+
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+
+          body: formData
+        }
+      )
+
+      const data = await response.json()
+
+      console.log(data)
+
+      // INVALID TOKEN
+      if (
+        data.message === "Unauthorized"
+        || data.message === "Invalid Token"
+      ) {
+
+        alert("Please Login Again")
+
+        localStorage.clear()
+
+        navigate("/login")
+
+        return
+      }
+
+      setOcrText(data.extracted_text)
+
+      setReport(data)
+
+    } catch (error) {
+
+      console.log(error)
+
+      alert("Upload Failed")
+    }
   }
 
+  // DRAG OVER
   const handleDragOver = (event) => {
+
     event.preventDefault()
+
     setIsDragging(true)
   }
 
+  // DRAG LEAVE
   const handleDragLeave = () => {
+
     setIsDragging(false)
   }
 
-  const handleDrop = (event) => {
+  // DROP FILE
+  const handleDrop = async (event) => {
+
     event.preventDefault()
 
     setIsDragging(false)
 
     const file = event.dataTransfer.files[0]
 
-    if (file) {
-      setSelectedFile(file)
+    if (!file) return
+
+    setSelectedFile(file)
+
+    try {
+
+      const token = localStorage.getItem(
+        "token"
+      )
+
+      const formData = new FormData()
+
+      formData.append("file", file)
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/upload",
+        {
+          method: "POST",
+
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+
+          body: formData
+        }
+      )
+
+      const data = await response.json()
+
+      console.log(data)
+
+      setOcrText(data.extracted_text)
+
+      setReport(data)
+
+    } catch (error) {
+
+      console.log(error)
+
+      alert("Upload Failed")
     }
   }
 
-const removeFile = () => {
+  // REMOVE FILE
+  const removeFile = () => {
 
-  setSelectedFile(null)
+    setSelectedFile(null)
 
-  setOcrText("")
+    setOcrText("")
 
-  setReport(null)
+    setReport(null)
 
-  if (fileInputRef.current) {
-    fileInputRef.current.value = ""
+    if (fileInputRef.current) {
+
+      fileInputRef.current.value = ""
+    }
   }
-}
+
   return (
+
     <div className="min-h-screen bg-[#F5F7FB] text-[#111827]">
 
       <Navbar />
@@ -115,11 +231,13 @@ const removeFile = () => {
                 stroke="currentColor"
                 strokeWidth={2}
               >
+
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   d="M7 16V4m0 0L3 8m4-4l4 4m6 8v4m0 0l4-4m-4 4l-4-4"
                 />
+
               </svg>
 
             </div>
@@ -150,6 +268,7 @@ const removeFile = () => {
 
             {/* SELECTED FILE */}
             {
+
               selectedFile && (
 
                 <div className="mt-8 bg-blue-50 border border-blue-100 rounded-2xl px-6 py-5">
@@ -186,7 +305,9 @@ const removeFile = () => {
                         onClick={removeFile}
                         className="bg-red-50 hover:bg-red-100 text-red-500 px-4 py-2 rounded-xl text-sm font-medium transition"
                       >
+
                         Remove
+
                       </button>
 
                     </div>
@@ -202,241 +323,103 @@ const removeFile = () => {
 
         </div>
 
+        {/* OCR TEXT */}
         {
-  ocrText && (
 
-    <div className="mt-10 bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+          ocrText && (
 
-      <h3 className="text-2xl font-semibold text-[#111827] mb-5">
-        Extracted Text
-      </h3>
+            <div className="mt-10 bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
 
-      <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 whitespace-pre-wrap text-gray-700 leading-relaxed">
-
-        {ocrText}
-
-      </div>
-
-    </div>
-
-  )
-}
-
-{
-  report && (
-
-    <div className="mt-10 bg-white border border-gray-200 rounded-3xl p-10 shadow-sm">
-
-      <div className="flex items-center justify-between mb-8">
-
-        <h2 className="text-3xl font-bold text-[#111827]">
-          Verification Report
-        </h2>
-
-        <div className="bg-green-50 text-green-600 px-4 py-2 rounded-xl font-semibold">
-          {report.fraud_risk} Risk
-        </div>
-
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        {/* DOCUMENT CATEGORY */}
-        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-          <p className="text-gray-500 text-sm">
-            Document Category
-          </p>
-
-          <h3 className="text-xl font-semibold mt-2">
-            {report.document_category}
-          </h3>
-
-        </div>
-
-        {/* NAME */}
-        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-          <p className="text-gray-500 text-sm">
-            Name
-          </p>
-
-          <h3 className="text-xl font-semibold mt-2">
-            {report.name}
-          </h3>
-
-        </div>
-
-        {/* PAN ONLY */}
-        {
-          report.document_category === "PAN Card" && (
-
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-              <p className="text-gray-500 text-sm">
-                PAN Number
-              </p>
-
-              <h3 className="text-xl font-semibold mt-2">
-                {report.pan_number}
+              <h3 className="text-2xl font-semibold text-[#111827] mb-5">
+                Extracted Text
               </h3>
+
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 whitespace-pre-wrap text-gray-700 leading-relaxed">
+
+                {ocrText}
+
+              </div>
 
             </div>
 
           )
         }
 
-       {
-  report.document_category === "Aadhaar Card" && (
-
-    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-      <p className="text-gray-500 text-sm">
-        Aadhaar Number
-      </p>
-
-      <h3 className="text-xl font-semibold mt-2">
-        {report.aadhaar_number}
-      </h3>
-
-    </div>
-
-  )
-}
-
-{
-  report.document_category === "Invoice" && (
-
-    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-      <p className="text-gray-500 text-sm">
-        Invoice Number
-      </p>
-
-      <h3 className="text-xl font-semibold mt-2">
-        {report.invoice_number}
-      </h3>
-
-    </div>
-
-  )
-}
-
-{
-  report.document_category === "Invoice" && (
-
-    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-      <p className="text-gray-500 text-sm">
-        Total Amount
-      </p>
-
-      <h3 className="text-xl font-semibold mt-2">
-        {report.total_amount}
-      </h3>
-
-    </div>
-
-  )
-}
-
-{
-  report.document_category === "Aadhaar Card" && (
-
-    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-      <p className="text-gray-500 text-sm">
-        Gender
-      </p>
-
-      <h3 className="text-xl font-semibold mt-2">
-        {report.gender}
-      </h3>
-
-    </div>
-
-  )
-}
-        {/* DOB ONLY */}
+        {/* REPORT */}
         {
-          report.document_category === "PAN Card" ||
-          report.document_category === "Aadhaar Card" && (
 
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+          report && (
 
-              <p className="text-gray-500 text-sm">
-                Date of Birth
-              </p>
+            <div className="mt-10 bg-white border border-gray-200 rounded-3xl p-10 shadow-sm">
 
-              <h3 className="text-xl font-semibold mt-2">
-                {report.dob}
-              </h3>
+              <div className="flex items-center justify-between mb-8">
+
+                <h2 className="text-3xl font-bold text-[#111827]">
+                  Verification Report
+                </h2>
+
+                <div className="bg-green-50 text-green-600 px-4 py-2 rounded-xl font-semibold">
+                  {report.fraud_risk} Risk
+                </div>
+
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+                  <p className="text-gray-500 text-sm">
+                    Document Category
+                  </p>
+
+                  <h3 className="text-xl font-semibold mt-2">
+                    {report.document_category}
+                  </h3>
+
+                </div>
+
+                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+                  <p className="text-gray-500 text-sm">
+                    Name
+                  </p>
+
+                  <h3 className="text-xl font-semibold mt-2">
+                    {report.name}
+                  </h3>
+
+                </div>
+
+                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+                  <p className="text-gray-500 text-sm">
+                    Confidence Score
+                  </p>
+
+                  <h3 className="text-xl font-semibold mt-2">
+                    {report.confidence_score}%
+                  </h3>
+
+                </div>
+
+                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+
+                  <p className="text-gray-500 text-sm">
+                    Verification Status
+                  </p>
+
+                  <h3 className="text-xl font-semibold mt-2">
+                    {report.verification_status}
+                  </h3>
+
+                </div>
+
+              </div>
 
             </div>
 
           )
         }
-
-        {/* CONFIDENCE */}
-        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-
-          <p className="text-gray-500 text-sm">
-            Confidence Score
-          </p>
-
-          <h3 className="text-xl font-semibold mt-2">
-            {report.confidence_score}%
-          </h3>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  )
-}
-
-        {/* FEATURES */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 pb-32">
-
-          <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-
-            <h3 className="text-xl font-semibold text-[#111827]">
-              OCR Analysis
-            </h3>
-
-            <p className="text-gray-500 mt-4 leading-relaxed">
-              Extract and analyze text from scanned and digital documents.
-            </p>
-
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-
-            <h3 className="text-xl font-semibold text-[#111827]">
-              Fraud Detection
-            </h3>
-
-            <p className="text-gray-500 mt-4 leading-relaxed">
-              Detect edited regions, suspicious metadata, and forged elements.
-            </p>
-
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-
-            <h3 className="text-xl font-semibold text-[#111827]">
-              Verification Reports
-            </h3>
-
-            <p className="text-gray-500 mt-4 leading-relaxed">
-              Generate intelligent fraud analysis and authenticity reports.
-            </p>
-
-          </div>
-
-        </div>
 
       </div>
 

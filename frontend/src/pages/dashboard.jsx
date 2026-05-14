@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+
 import Navbar from "../components/Navbar"
 
 import {
@@ -12,11 +14,34 @@ import {
 
 export default function Dashboard() {
 
+  const navigate = useNavigate()
+
   const [reports, setReports] = useState([])
 
+  // PROTECTED ROUTE
   useEffect(() => {
 
-    fetch("http://127.0.0.1:8000/reports")
+    const token = localStorage.getItem(
+      "token"
+    )
+
+    // NO TOKEN
+    if (!token) {
+
+      navigate("/login")
+
+      return
+    }
+
+    // FETCH USER REPORTS
+    fetch(
+      "http://127.0.0.1:8000/reports",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
 
       .then((res) => res.json())
 
@@ -24,8 +49,26 @@ export default function Dashboard() {
 
         console.log(data)
 
+        // INVALID TOKEN
+        if (
+          data.message === "Unauthorized"
+          || data.message === "Invalid Token"
+        ) {
+
+          localStorage.clear()
+
+          navigate("/login")
+
+          return
+        }
+
         setReports(data)
 
+      })
+
+      .catch((error) => {
+
+        console.log(error)
       })
 
   }, [])
@@ -43,7 +86,9 @@ export default function Dashboard() {
 
   const accuracyRate =
     totalUploads > 0
-      ? Math.round((verifiedDocuments / totalUploads) * 100)
+      ? Math.round(
+          (verifiedDocuments / totalUploads) * 100
+        )
       : 0
 
   // CHART DATA
@@ -57,6 +102,7 @@ export default function Dashboard() {
   ]
 
   return (
+
     <div className="min-h-screen bg-[#F5F7FB] text-[#111827]">
 
       <Navbar />
@@ -238,10 +284,21 @@ export default function Dashboard() {
 
                   <tr className="text-left text-gray-500 border-b border-gray-100">
 
-                    <th className="pb-4">Document</th>
-                    <th className="pb-4">Category</th>
-                    <th className="pb-4">Risk</th>
-                    <th className="pb-4">Score</th>
+                    <th className="pb-4">
+                      Document
+                    </th>
+
+                    <th className="pb-4">
+                      Category
+                    </th>
+
+                    <th className="pb-4">
+                      Risk
+                    </th>
+
+                    <th className="pb-4">
+                      Score
+                    </th>
 
                   </tr>
 
@@ -269,7 +326,7 @@ export default function Dashboard() {
 
                           <span
                             className={`px-4 py-2 rounded-xl text-sm font-medium
-                              
+
                               ${
                                 report.fraud_risk === "Low"
                                   ? "bg-green-100 text-green-600"
