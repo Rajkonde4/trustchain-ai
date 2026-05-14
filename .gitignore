@@ -7,3 +7,27 @@ __pycache__
 __pycache__/
 *.pyc
 backend/*.pdf
+backend/qr_*.png
+backend/report_*.pdf
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Environment
+.env
+
+# Reports
+*.pdf
+*.png
+
+# OS
+.DS_Store
+Thumbs.db
+
+backend/qr_codes/
+backend/reports/
