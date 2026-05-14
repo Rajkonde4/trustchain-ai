@@ -1,3 +1,10 @@
+import fitz
+
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.styles import ParagraphStyle
+
 from fastapi import Header
 from jose import JWTError
 
@@ -129,7 +136,9 @@ def verify_token(token):
 
         return payload
 
-    except JWTError:
+    except Exception as e:
+
+        print("TOKEN ERROR:", e)
 
         return None
 
@@ -297,69 +306,221 @@ async def upload_file(
         )
 
     # =========================
-    # IMAGE PROCESSING
-    # =========================
-
-    image = Image.open(
-        io.BytesIO(contents)
-    )
-
-    # =========================
-    # METADATA EXTRACTION
+    # FILE PROCESSING
     # =========================
 
     metadata = {}
 
-    metadata["format"] = image.format
-
-    metadata["mode"] = image.mode
-
-    metadata["size"] = image.size
-
-    exif_data = image.getexif()
-
-    for tag_id, value in exif_data.items():
-
-        metadata[str(tag_id)] = str(value)
+    extracted_text = ""
 
     # =========================
-    # OCR
+    # PDF SUPPORT
     # =========================
 
-    extracted_text = pytesseract.image_to_string(
-        image
-    )
+    if file.content_type == "application/pdf":
+
+        pdf_document = fitz.open(
+            stream=contents,
+            filetype="pdf"
+        )
+
+        metadata["pages"] = len(pdf_document)
+
+        for page_number in range(len(pdf_document)):
+
+            page = pdf_document.load_page(
+                page_number
+            )
+
+            pix = page.get_pixmap()
+
+            image_bytes = pix.tobytes("png")
+
+            image = Image.open(
+                io.BytesIO(image_bytes)
+            )
+
+            page_text = pytesseract.image_to_string(
+                image
+            )
+
+            extracted_text += page_text + "\n"
+
+    # =========================
+    # IMAGE SUPPORT
+    # =========================
+
+    else:
+
+        image = Image.open(
+            io.BytesIO(contents)
+        )
+
+        metadata["format"] = image.format
+
+        metadata["mode"] = image.mode
+
+        metadata["size"] = image.size
+
+        exif_data = image.getexif()
+
+        for tag_id, value in exif_data.items():
+
+            metadata[str(tag_id)] = str(value)
+
+        extracted_text = pytesseract.image_to_string(
+            image
+        )
+
+    # =========================
+    # NORMALIZED TEXT
+    # =========================
 
     upper_text = extracted_text.upper()
 
-    # =========================
+        # =========================
     # DOCUMENT CLASSIFICATION
     # =========================
 
     document_category = "Unknown Document"
 
-    if "INCOME TAX" in upper_text:
+    # PAN CARD
+    if (
+
+        "INCOME TAX" in upper_text
+
+        or "PERMANENT ACCOUNT NUMBER" in upper_text
+
+    ):
 
         document_category = "PAN Card"
 
-    elif "GOVERNMENT OF INDIA" in upper_text:
+    # AADHAAR
+    elif (
+
+        "GOVERNMENT OF INDIA" in upper_text
+
+        or "UNIQUE IDENTIFICATION AUTHORITY" in upper_text
+
+        or "AADHAAR" in upper_text
+
+    ):
 
         document_category = "Aadhaar Card"
 
-    elif "PASSPORT" in upper_text:
+    # PASSPORT
+    elif (
+
+        "PASSPORT" in upper_text
+
+        or "REPUBLIC OF INDIA" in upper_text
+
+    ):
 
         document_category = "Passport"
 
-    elif "INVOICE" in upper_text:
+    # INVOICE
+    elif (
+
+        "INVOICE" in upper_text
+
+        or "BILL TO" in upper_text
+
+        or "GSTIN" in upper_text
+
+    ):
 
         document_category = "Invoice"
 
+    # RESUME / CV
     elif (
+
         "RESUME" in upper_text
+
+        or "CURRICULUM VITAE" in upper_text
+
         or "EDUCATION" in upper_text
+
+        or "SKILLS" in upper_text
+
+        or "EXPERIENCE" in upper_text
+
     ):
 
         document_category = "Resume"
+
+    # DRIVING LICENSE
+    elif (
+
+        "DRIVING LICENCE" in upper_text
+
+        or "DRIVING LICENSE" in upper_text
+
+        or "TRANSPORT DEPARTMENT" in upper_text
+
+    ):
+
+        document_category = "Driving License"
+
+    # BANK STATEMENT
+    elif (
+
+        "ACCOUNT STATEMENT" in upper_text
+
+        or "BANK STATEMENT" in upper_text
+
+        or "IFSC" in upper_text
+
+        or "ACCOUNT NUMBER" in upper_text
+
+    ):
+
+        document_category = "Bank Statement"
+
+    # ACADEMIC CERTIFICATE
+    elif (
+
+        "CERTIFICATE" in upper_text
+
+        or "UNIVERSITY" in upper_text
+
+        or "COLLEGE" in upper_text
+
+        or "GRADE" in upper_text
+
+        or "CGPA" in upper_text
+
+    ):
+
+        document_category = "Academic Certificate"
+
+    # MARKSHEET
+    elif (
+
+        "MARKSHEET" in upper_text
+
+        or "MARKS" in upper_text
+
+        or "SEMESTER" in upper_text
+
+        or "RESULT" in upper_text
+
+    ):
+
+        document_category = "Marksheet"
+
+    # VOTER ID
+    elif (
+
+        "ELECTION COMMISSION OF INDIA" in upper_text
+
+        or "VOTER ID" in upper_text
+
+        or "ELECTOR" in upper_text
+
+    ):
+
+        document_category = "Voter ID"
 
     # =========================
     # PAN EXTRACTION
@@ -496,20 +657,359 @@ async def upload_file(
 
             break
 
+        # =========================
+    # PASSPORT EXTRACTION
     # =========================
+
+    passport_number = "Not Found"
+
+    nationality = "Not Found"
+
+    expiry_date = "Not Found"
+
+    if document_category == "Passport":
+
+        # PASSPORT NUMBER
+        passport_pattern = r"[A-Z]{1}[0-9]{7}"
+
+        passport_match = re.search(
+            passport_pattern,
+            extracted_text
+        )
+
+        if passport_match:
+
+            passport_number = passport_match.group()
+
+        # NATIONALITY
+        if "INDIAN" in upper_text:
+
+            nationality = "Indian"
+
+        # EXPIRY DATE
+        expiry_pattern = r"\d{2}/\d{2}/\d{4}"
+
+        expiry_matches = re.findall(
+            expiry_pattern,
+            extracted_text
+        )
+
+        if len(expiry_matches) >= 2:
+
+            expiry_date = expiry_matches[-1]
+
+    # =========================
+    # RESUME EXTRACTION
+    # =========================
+
+    resume_email = "Not Found"
+
+    resume_phone = "Not Found"
+
+    skills_found = []
+
+    if document_category == "Resume":
+
+        # EMAIL
+        email_pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+
+        email_match = re.search(
+            email_pattern,
+            extracted_text
+        )
+
+        if email_match:
+
+            resume_email = email_match.group()
+
+        # PHONE
+        phone_pattern = r"\+?\d[\d\s\-]{8,15}"
+
+        phone_match = re.search(
+            phone_pattern,
+            extracted_text
+        )
+
+        if phone_match:
+
+            resume_phone = phone_match.group()
+
+        # SKILLS
+        skill_keywords = [
+
+            "PYTHON",
+            "JAVA",
+            "JAVASCRIPT",
+            "REACT",
+            "NODE",
+            "DJANGO",
+            "MONGODB",
+            "SQL",
+            "HTML",
+            "CSS",
+            "MACHINE LEARNING",
+            "AI",
+            "DATA ANALYTICS"
+
+        ]
+
+        for skill in skill_keywords:
+
+            if skill in upper_text:
+
+                skills_found.append(skill)
+
+    # =========================
+    # BANK STATEMENT EXTRACTION
+    # =========================
+
+    bank_name = "Not Found"
+
+    account_number = "Not Found"
+
+    ifsc_code = "Not Found"
+
+    if document_category == "Bank Statement":
+
+        # ACCOUNT NUMBER
+        account_pattern = r"\b\d{9,18}\b"
+
+        account_match = re.search(
+            account_pattern,
+            extracted_text
+        )
+
+        if account_match:
+
+            account_number = account_match.group()
+
+        # IFSC
+        ifsc_pattern = r"[A-Z]{4}0[A-Z0-9]{6}"
+
+        ifsc_match = re.search(
+            ifsc_pattern,
+            extracted_text
+        )
+
+        if ifsc_match:
+
+            ifsc_code = ifsc_match.group()
+
+        # BANK NAME
+        bank_keywords = [
+
+            "STATE BANK OF INDIA",
+            "HDFC BANK",
+            "ICICI BANK",
+            "AXIS BANK",
+            "BANK OF BARODA",
+            "PUNJAB NATIONAL BANK"
+
+        ]
+
+        for bank in bank_keywords:
+
+            if bank in upper_text:
+
+                bank_name = bank
+
+    # =========================
+    # DRIVING LICENSE EXTRACTION
+    # =========================
+
+    license_number = "Not Found"
+
+    if document_category == "Driving License":
+
+        license_pattern = r"[A-Z]{2}\d{2}\s?\d{11}"
+
+        license_match = re.search(
+            license_pattern,
+            extracted_text
+        )
+
+        if license_match:
+
+            license_number = license_match.group()
+
+    # =========================
+    # CERTIFICATE EXTRACTION
+    # =========================
+
+    university_name = "Not Found"
+
+    cgpa = "Not Found"
+
+    if (
+
+        document_category == "Academic Certificate"
+
+        or document_category == "Marksheet"
+
+    ):
+
+        # UNIVERSITY
+        university_keywords = [
+
+            "UNIVERSITY",
+            "COLLEGE",
+            "INSTITUTE"
+
+        ]
+
+        for line in lines:
+
+            for keyword in university_keywords:
+
+                if keyword in line.upper():
+
+                    university_name = line.strip()
+
+                    break
+
+        # CGPA
+        cgpa_pattern = r"\b\d\.\d{1,2}\b"
+
+        cgpa_match = re.search(
+            cgpa_pattern,
+            extracted_text
+        )
+
+        if cgpa_match:
+
+            cgpa = cgpa_match.group()
+
+    # =========================
+    # VOTER ID EXTRACTION
+    # =========================
+
+    voter_id = "Not Found"
+
+    if document_category == "Voter ID":
+
+        voter_pattern = r"[A-Z]{3}[0-9]{7}"
+
+        voter_match = re.search(
+            voter_pattern,
+            extracted_text
+        )
+
+        if voter_match:
+
+            voter_id = voter_match.group()   
+
+            # =========================
+    # PASSPORT EXTRACTION
+    # =========================
+
+    passport_number = "Not Found"
+
+    nationality = "Not Found"
+
+    expiry_date = "Not Found"
+
+    if document_category == "Passport":
+
+        # PASSPORT NUMBER
+        passport_pattern = r"[A-Z]{1}[0-9]{7}"
+
+        passport_match = re.search(
+            passport_pattern,
+            extracted_text
+        )
+
+        if passport_match:
+
+            passport_number = passport_match.group()
+
+        # NATIONALITY
+        if "INDIAN" in upper_text:
+
+            nationality = "Indian"
+
+        # EXPIRY DATE
+        expiry_pattern = r"\d{2}/\d{2}/\d{4}"
+
+        expiry_matches = re.findall(
+            expiry_pattern,
+            extracted_text
+        )
+
+        if len(expiry_matches) >= 2:
+
+            expiry_date = expiry_matches[-1]
+
+        # =========================
     # FRAUD DETECTION
     # =========================
 
     text_length = len(extracted_text)
 
-    confidence_score = min(
-        95,
-        max(60, text_length // 10)
-    )
+    metadata_string = str(metadata).lower()
+
+    confidence_score = 50
 
     fraud_risk = "Low"
 
-    metadata_string = str(metadata).lower()
+    # =========================
+    # OCR QUALITY
+    # =========================
+
+    if text_length > 500:
+
+        confidence_score += 20
+
+    elif text_length > 200:
+
+        confidence_score += 15
+
+    elif text_length > 100:
+
+        confidence_score += 10
+
+    else:
+
+        confidence_score -= 15
+
+    # =========================
+    # DOCUMENT FIELD DETECTION
+    # =========================
+
+    if pan_number != "Not Found":
+
+        confidence_score += 10
+
+    if aadhaar_number != "Not Found":
+
+        confidence_score += 10
+
+    if invoice_number != "Not Found":
+
+        confidence_score += 8
+
+    if total_amount != "Not Found":
+
+        confidence_score += 5
+
+    if name != "Not Found":
+
+        confidence_score += 7
+
+    if dob != "Not Found":
+
+        confidence_score += 5
+
+    # =========================
+    # DOCUMENT CATEGORY BONUS
+    # =========================
+
+    if document_category != "Unknown Document":
+
+        confidence_score += 10
+
+    # =========================
+    # METADATA TAMPERING CHECK
+    # =========================
 
     if (
 
@@ -518,17 +1018,59 @@ async def upload_file(
         or "canva" in metadata_string
 
         or "editor" in metadata_string
+
     ):
 
         fraud_risk = "High"
+
+        confidence_score -= 30
+
+    # =========================
+    # LOW OCR QUALITY
+    # =========================
 
     if text_length < 50:
 
         fraud_risk = "High"
 
+        confidence_score -= 20
+
     elif text_length < 150:
 
-        fraud_risk = "Medium"
+        if fraud_risk != "High":
+
+            fraud_risk = "Medium"
+
+        confidence_score -= 10
+
+    # =========================
+    # NORMALIZE SCORE
+    # =========================
+
+    confidence_score = max(
+        35,
+        min(confidence_score, 98)
+    )
+
+    # =========================
+    # FINAL RISK ADJUSTMENT
+    # =========================
+
+    if confidence_score < 50:
+
+        fraud_risk = "High"
+
+    elif confidence_score < 75:
+
+        if fraud_risk != "High":
+
+            fraud_risk = "Medium"
+
+    else:
+
+        if fraud_risk != "High":
+
+            fraud_risk = "Low"
 
     # =========================
     # SAVE TO DATABASE
@@ -578,8 +1120,8 @@ async def upload_file(
     # =========================
     # PDF REPORT
     # =========================
-
-    pdf_file = f"report_{report_id}.pdf"
+    pdf_file = f"reports/report_{report_id}.pdf"
+    
 
     verification_url = (
         f"http://localhost:5173/verify/{report_id}"
@@ -589,78 +1131,158 @@ async def upload_file(
         verification_url
     )
 
-    qr_path = f"qr_{report_id}.png"
+    qr_path = f"qr_codes/qr_{report_id}.png"
 
     qr.save(qr_path)
 
-    doc = SimpleDocTemplate(pdf_file)
+    doc = SimpleDocTemplate(
+        pdf_file,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=40,
+        bottomMargin=30
+    )
 
     styles = getSampleStyleSheet()
 
     elements = []
 
+    # CUSTOM TITLE STYLE
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        leading=30,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#2563EB")
+    )
+
+    # HEADER
     elements.append(
 
         Paragraph(
-            "TrustChain AI Verification Report",
-            styles['Title']
+            "NEW PROFESSIONAL REPORT",
+            title_style
         )
     )
 
     elements.append(
-        Spacer(1, 20)
+        Spacer(1, 25)
     )
 
-    report_lines = [
+    # SUMMARY TABLE
+    summary_data = [
 
-        f"Filename: {file.filename}",
+        ["Field", "Value"],
 
-        f"Document Category: {document_category}",
+        ["Filename", file.filename],
 
-        f"Fraud Risk: {fraud_risk}",
+        ["Document Category", document_category],
 
-        f"Confidence Score: {confidence_score}%",
+        ["Verification Status", verification_status],
 
-        f"Verification Status: {verification_status}",
+        ["Fraud Risk", fraud_risk],
 
-        f"Name: {name}",
+        ["Confidence Score", f"{confidence_score}%"],
 
-        f"PAN Number: {pan_number}",
-
-        f"Aadhaar Number: {aadhaar_number}",
-
-        f"DOB: {dob}",
-
-        f"Gender: {gender}",
-
-        f"Invoice Number: {invoice_number}",
-
-        f"Total Amount: {total_amount}",
-
-        f"Document Hash: {document_hash}"
+        ["Document Hash", document_hash[:40] + "..."]
     ]
 
-    for line in report_lines:
-
-        elements.append(
-            Paragraph(
-                line,
-                styles['BodyText']
-            )
-        )
-
-        elements.append(
-            Spacer(1, 10)
-        )
-
-    elements.append(
-        Spacer(1, 20)
+    summary_table = Table(
+        summary_data,
+        colWidths=[180, 300]
     )
 
+    summary_table.setStyle(
+
+        TableStyle([
+
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2563EB")),
+
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+
+            ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+
+            ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
+
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1),
+            [colors.whitesmoke, colors.beige]),
+        ])
+    )
+
+    elements.append(summary_table)
+
+    elements.append(
+        Spacer(1, 30)
+    )
+
+    # EXTRACTED INFO TITLE
     elements.append(
 
         Paragraph(
-            "Scan QR for Public Verification",
+            "Extracted Information",
+            styles['Heading2']
+        )
+    )
+
+    elements.append(
+        Spacer(1, 15)
+    )
+
+    # EXTRACTED INFO TABLE
+    info_data = [
+
+        ["Name", name],
+
+        ["PAN Number", pan_number],
+
+        ["Aadhaar Number", aadhaar_number],
+
+        ["DOB", dob],
+
+        ["Gender", gender],
+
+        ["Invoice Number", invoice_number],
+
+        ["Total Amount", total_amount]
+    ]
+
+    info_table = Table(
+        info_data,
+        colWidths=[180, 300]
+    )
+
+    info_table.setStyle(
+
+        TableStyle([
+
+            ('BACKGROUND', (0, 0), (-1, -1), colors.whitesmoke),
+
+            ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
+
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ])
+    )
+
+    elements.append(info_table)
+
+    elements.append(
+        Spacer(1, 30)
+    )
+
+    # FRAUD ANALYSIS
+    elements.append(
+
+        Paragraph(
+            "Fraud Analysis",
             styles['Heading2']
         )
     )
@@ -669,13 +1291,78 @@ async def upload_file(
         Spacer(1, 10)
     )
 
+    fraud_color = {
+
+        "Low": "green",
+        "Medium": "orange",
+        "High": "red"
+
+    }.get(fraud_risk, "black")
+
+    fraud_text = f"""
+    <b>Risk Level:</b>
+    <font color="{fraud_color}">
+    {fraud_risk}
+    </font>
+    """
+
+    elements.append(
+
+        Paragraph(
+            fraud_text,
+            styles['BodyText']
+        )
+    )
+
+    elements.append(
+        Spacer(1, 25)
+    )
+
+    # QR SECTION
+    elements.append(
+
+        Paragraph(
+            "Public Verification QR",
+            styles['Heading2']
+        )
+    )
+
+    elements.append(
+        Spacer(1, 12)
+    )
+
     qr_image = RLImage(
         qr_path,
-        width=150,
-        height=150
+        width=140,
+        height=140
     )
 
     elements.append(qr_image)
+
+    elements.append(
+        Spacer(1, 12)
+    )
+
+    elements.append(
+
+        Paragraph(
+            verification_url,
+            styles['BodyText']
+        )
+    )
+
+    elements.append(
+        Spacer(1, 30)
+    )
+
+    # FOOTER
+    elements.append(
+
+        Paragraph(
+            "Generated securely by TrustChain AI",
+            styles['Italic']
+        )
+    )
 
     doc.build(elements)
 
@@ -717,8 +1404,27 @@ async def upload_file(
 
         "document_hash": document_hash,
 
-        "verification_status": verification_status
-    }
+        "verification_status": verification_status,
+
+        "passport_number": passport_number,
+        "nationality": nationality,
+        "expiry_date": expiry_date,
+
+        "resume_email": resume_email,
+        "resume_phone": resume_phone,
+        "skills_found": skills_found,
+
+        "bank_name": bank_name,
+        "account_number": account_number,
+        "ifsc_code": ifsc_code,
+
+        "license_number": license_number,
+
+        "university_name": university_name,
+        "cgpa": cgpa,
+
+        "voter_id": voter_id,
+            }
 
 # =========================
 # GET REPORTS
@@ -773,7 +1479,7 @@ def get_reports(
 @app.get("/download-report/{report_id}")
 def download_report(report_id: str):
 
-    pdf_file = f"report_{report_id}.pdf"
+    pdf_file = f"reports/report_{report_id}.pdf"
 
     return FileResponse(
 
