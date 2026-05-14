@@ -18,7 +18,14 @@ export default function Dashboard() {
 
   const [reports, setReports] = useState([])
 
-  // PROTECTED ROUTE
+  const [activeSection, setActiveSection] = useState(
+    "overview"
+  )
+
+  // =========================
+  // AUTH + FETCH REPORTS
+  // =========================
+
   useEffect(() => {
 
     const token = localStorage.getItem(
@@ -33,7 +40,6 @@ export default function Dashboard() {
       return
     }
 
-    // FETCH USER REPORTS
     fetch(
       "http://127.0.0.1:8000/reports",
       {
@@ -49,7 +55,6 @@ export default function Dashboard() {
 
         console.log(data)
 
-        // INVALID TOKEN
         if (
           data.message === "Unauthorized"
           || data.message === "Invalid Token"
@@ -71,9 +76,12 @@ export default function Dashboard() {
         console.log(error)
       })
 
-  }, [])
+  }, [navigate])
 
-  // REAL ANALYTICS
+  // =========================
+  // ANALYTICS
+  // =========================
+
   const totalUploads = reports.length
 
   const fraudDetected = reports.filter(
@@ -91,15 +99,45 @@ export default function Dashboard() {
         )
       : 0
 
-  // CHART DATA
+  // =========================
+  // REAL CHART DATA
+  // =========================
+
   const fraudData = [
-    { month: "Jan", fraud: 12 },
-    { month: "Feb", fraud: 19 },
-    { month: "Mar", fraud: 8 },
-    { month: "Apr", fraud: 15 },
-    { month: "May", fraud: 10 },
-    { month: "Jun", fraud: 6 },
+
+    {
+      risk: "Low",
+      count: reports.filter(
+        (report) => report.fraud_risk === "Low"
+      ).length
+    },
+
+    {
+      risk: "Medium",
+      count: reports.filter(
+        (report) => report.fraud_risk === "Medium"
+      ).length
+    },
+
+    {
+      risk: "High",
+      count: reports.filter(
+        (report) => report.fraud_risk === "High"
+      ).length
+    }
+
   ]
+
+  // =========================
+  // LOGOUT
+  // =========================
+
+  const handleLogout = () => {
+
+    localStorage.clear()
+
+    navigate("/login")
+  }
 
   return (
 
@@ -118,24 +156,99 @@ export default function Dashboard() {
 
           <div className="mt-10 space-y-4">
 
-            <div className="bg-blue-50 text-[#3B82F6] px-5 py-4 rounded-2xl font-medium">
+            {/* OVERVIEW */}
+            <div
+
+              onClick={() => setActiveSection("overview")}
+
+              className={`px-5 py-4 rounded-2xl font-medium cursor-pointer transition
+
+                ${
+                  activeSection === "overview"
+                    ? "bg-blue-50 text-[#3B82F6]"
+                    : "text-gray-600 hover:bg-gray-100"
+                }
+              `}
+            >
+
               Overview
+
             </div>
 
-            <div className="text-gray-600 px-5 py-4 rounded-2xl hover:bg-gray-100 transition cursor-pointer">
-              Uploads
+            {/* UPLOAD HISTORY */}
+            <div
+
+              onClick={() => setActiveSection("uploads")}
+
+              className={`px-5 py-4 rounded-2xl font-medium cursor-pointer transition
+
+                ${
+                  activeSection === "uploads"
+                    ? "bg-blue-50 text-[#3B82F6]"
+                    : "text-gray-600 hover:bg-gray-100"
+                }
+              `}
+            >
+
+              Upload History
+
             </div>
 
-            <div className="text-gray-600 px-5 py-4 rounded-2xl hover:bg-gray-100 transition cursor-pointer">
+            {/* REPORTS */}
+            <div
+
+              onClick={() => setActiveSection("reports")}
+
+              className={`px-5 py-4 rounded-2xl font-medium cursor-pointer transition
+
+                ${
+                  activeSection === "reports"
+                    ? "bg-blue-50 text-[#3B82F6]"
+                    : "text-gray-600 hover:bg-gray-100"
+                }
+              `}
+            >
+
               Reports
+
             </div>
 
-            <div className="text-gray-600 px-5 py-4 rounded-2xl hover:bg-gray-100 transition cursor-pointer">
-              Fraud Analysis
+            {/* ANALYTICS */}
+            <div
+
+              onClick={() => setActiveSection("analytics")}
+
+              className={`px-5 py-4 rounded-2xl font-medium cursor-pointer transition
+
+                ${
+                  activeSection === "analytics"
+                    ? "bg-blue-50 text-[#3B82F6]"
+                    : "text-gray-600 hover:bg-gray-100"
+                }
+              `}
+            >
+
+              Fraud Analytics
+
             </div>
 
-            <div className="text-gray-600 px-5 py-4 rounded-2xl hover:bg-gray-100 transition cursor-pointer">
+            {/* SETTINGS */}
+            <div
+
+              onClick={() => setActiveSection("settings")}
+
+              className={`px-5 py-4 rounded-2xl font-medium cursor-pointer transition
+
+                ${
+                  activeSection === "settings"
+                    ? "bg-blue-50 text-[#3B82F6]"
+                    : "text-gray-600 hover:bg-gray-100"
+                }
+              `}
+            >
+
               Settings
+
             </div>
 
           </div>
@@ -146,219 +259,406 @@ export default function Dashboard() {
         <div className="flex-1 p-10">
 
           {/* HEADER */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
 
-            <div>
+            <p className="text-[#3B82F6] uppercase tracking-[0.2em] text-sm font-semibold">
+              Analytics Dashboard
+            </p>
 
-              <p className="text-[#3B82F6] uppercase tracking-[0.2em] text-sm font-semibold">
-                Analytics Dashboard
-              </p>
+            <h1 className="text-5xl font-bold mt-4">
 
-              <h1 className="text-5xl font-bold mt-4">
-                Verification Overview
-              </h1>
+              {
+                activeSection === "overview"
+                  ? "Verification Overview"
+                  : activeSection === "uploads"
+                  ? "Upload History"
+                  : activeSection === "reports"
+                  ? "Reports Center"
+                  : activeSection === "analytics"
+                  ? "Fraud Analytics"
+                  : "Settings"
+              }
 
-            </div>
+            </h1>
 
-            <button className="bg-[#3B82F6] hover:bg-[#2563EB] transition text-white px-6 py-4 rounded-2xl font-medium shadow-lg">
-              Generate Report
-            </button>
+            <p className="text-gray-500 mt-4">
 
-          </div>
+              Monitor uploaded documents, fraud detection,
+              and verification analytics.
 
-          {/* STATS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-12">
-
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-
-              <p className="text-gray-500">
-                Total Uploads
-              </p>
-
-              <h2 className="text-4xl font-bold mt-4">
-                {totalUploads}
-              </h2>
-
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-
-              <p className="text-gray-500">
-                Fraud Detected
-              </p>
-
-              <h2 className="text-4xl font-bold mt-4 text-red-500">
-                {fraudDetected}
-              </h2>
-
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-
-              <p className="text-gray-500">
-                Verified Documents
-              </p>
-
-              <h2 className="text-4xl font-bold mt-4 text-green-500">
-                {verifiedDocuments}
-              </h2>
-
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-
-              <p className="text-gray-500">
-                Accuracy Rate
-              </p>
-
-              <h2 className="text-4xl font-bold mt-4 text-[#3B82F6]">
-                {accuracyRate}%
-              </h2>
-
-            </div>
+            </p>
 
           </div>
 
-          {/* ANALYTICS CHART */}
-          <div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+          {/* ========================= */}
+          {/* OVERVIEW */}
+          {/* ========================= */}
 
-            <div className="flex items-center justify-between mb-8">
+          {
+            activeSection === "overview" && (
 
-              <div>
+              <>
 
-                <p className="text-[#3B82F6] uppercase tracking-[0.2em] text-sm font-semibold">
-                  Analytics
-                </p>
+                {/* STATS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-12">
 
-                <h2 className="text-3xl font-bold mt-3">
-                  Fraud Detection Trends
+                  <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+
+                    <p className="text-gray-500">
+                      Total Uploads
+                    </p>
+
+                    <h2 className="text-4xl font-bold mt-4">
+                      {totalUploads}
+                    </h2>
+
+                  </div>
+
+                  <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+
+                    <p className="text-gray-500">
+                      Fraud Detected
+                    </p>
+
+                    <h2 className="text-4xl font-bold mt-4 text-red-500">
+                      {fraudDetected}
+                    </h2>
+
+                  </div>
+
+                  <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+
+                    <p className="text-gray-500">
+                      Verified Documents
+                    </p>
+
+                    <h2 className="text-4xl font-bold mt-4 text-green-500">
+                      {verifiedDocuments}
+                    </h2>
+
+                  </div>
+
+                  <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
+
+                    <p className="text-gray-500">
+                      Accuracy Rate
+                    </p>
+
+                    <h2 className="text-4xl font-bold mt-4 text-[#3B82F6]">
+                      {accuracyRate}%
+                    </h2>
+
+                  </div>
+
+                </div>
+
+                {/* CHART */}
+                <div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+
+                  <p className="text-[#3B82F6] uppercase tracking-[0.2em] text-sm font-semibold">
+                    Fraud Analytics
+                  </p>
+
+                  <h2 className="text-3xl font-bold mt-3">
+                    Fraud Risk Distribution
+                  </h2>
+
+                  <div className="w-full h-[350px] mt-10">
+
+                    <ResponsiveContainer width="100%" height="100%">
+
+                      <LineChart data={fraudData}>
+
+                        <XAxis dataKey="risk" />
+
+                        <YAxis />
+
+                        <Tooltip />
+
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke="#3B82F6"
+                          strokeWidth={4}
+                        />
+
+                      </LineChart>
+
+                    </ResponsiveContainer>
+
+                  </div>
+
+                </div>
+
+              </>
+
+            )
+          }
+
+          {/* ========================= */}
+          {/* UPLOAD HISTORY */}
+          {/* ========================= */}
+
+          {
+            activeSection === "uploads" && (
+
+              <div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+
+                <h2 className="text-2xl font-bold">
+                  Uploaded Documents
                 </h2>
+
+                <div className="mt-8 overflow-x-auto">
+
+                  <table className="w-full">
+
+                    <thead>
+
+                      <tr className="text-left text-gray-500 border-b border-gray-100">
+
+                        <th className="pb-4">
+                          Document
+                        </th>
+
+                        <th className="pb-4">
+                          Category
+                        </th>
+
+                        <th className="pb-4">
+                          Risk
+                        </th>
+
+                        <th className="pb-4">
+                          Score
+                        </th>
+
+                      </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                      {
+                        reports.map((report) => (
+
+                          <tr
+                            key={report._id}
+                            className="border-b border-gray-100"
+                          >
+
+                            <td className="py-5">
+                              {report.filename}
+                            </td>
+
+                            <td className="py-5">
+                              {report.document_category}
+                            </td>
+
+                            <td className="py-5">
+
+                              <span
+                                className={`px-4 py-2 rounded-xl text-sm font-medium
+
+                                  ${
+                                    report.fraud_risk === "Low"
+                                      ? "bg-green-100 text-green-600"
+                                      : report.fraud_risk === "Medium"
+                                      ? "bg-yellow-100 text-yellow-600"
+                                      : "bg-red-100 text-red-600"
+                                  }
+                                `}
+                              >
+
+                                {report.fraud_risk}
+
+                              </span>
+
+                            </td>
+
+                            <td className="py-5">
+                              {report.confidence_score}%
+                            </td>
+
+                          </tr>
+
+                        ))
+                      }
+
+                    </tbody>
+
+                  </table>
+
+                </div>
 
               </div>
 
-            </div>
+            )
+          }
 
-            <div className="w-full h-[350px] min-w-0">
+          {/* ========================= */}
+          {/* REPORTS */}
+          {/* ========================= */}
 
-              <ResponsiveContainer width="100%" height="100%">
+          {
+            activeSection === "reports" && (
 
-                <LineChart data={fraudData}>
+              <div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
 
-                  <XAxis dataKey="month" />
+                <h2 className="text-2xl font-bold">
+                  Reports Center
+                </h2>
 
-                  <YAxis />
-
-                  <Tooltip />
-
-                  <Line
-                    type="monotone"
-                    dataKey="fraud"
-                    stroke="#3B82F6"
-                    strokeWidth={4}
-                  />
-
-                </LineChart>
-
-              </ResponsiveContainer>
-
-            </div>
-
-          </div>
-
-          {/* RECENT UPLOADS */}
-          <div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
-
-            <div className="flex items-center justify-between">
-
-              <h2 className="text-2xl font-bold">
-                Recent Uploads
-              </h2>
-
-            </div>
-
-            <div className="mt-8 overflow-x-auto">
-
-              <table className="w-full">
-
-                <thead>
-
-                  <tr className="text-left text-gray-500 border-b border-gray-100">
-
-                    <th className="pb-4">
-                      Document
-                    </th>
-
-                    <th className="pb-4">
-                      Category
-                    </th>
-
-                    <th className="pb-4">
-                      Risk
-                    </th>
-
-                    <th className="pb-4">
-                      Score
-                    </th>
-
-                  </tr>
-
-                </thead>
-
-                <tbody>
+                <div className="mt-8 space-y-5">
 
                   {
                     reports.map((report) => (
 
-                      <tr
+                      <div
                         key={report._id}
-                        className="border-b border-gray-100"
+                        className="border border-gray-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5"
                       >
 
-                        <td className="py-5">
-                          {report.filename}
-                        </td>
+                        <div>
 
-                        <td className="py-5">
-                          {report.document_category}
-                        </td>
+                          <h3 className="text-xl font-semibold">
+                            {report.filename}
+                          </h3>
 
-                        <td className="py-5">
+                          <p className="text-gray-500 mt-2">
+                            {report.document_category}
+                          </p>
 
-                          <span
-                            className={`px-4 py-2 rounded-xl text-sm font-medium
+                        </div>
 
-                              ${
-                                report.fraud_risk === "Low"
-                                  ? "bg-green-100 text-green-600"
-                                  : report.fraud_risk === "Medium"
-                                  ? "bg-yellow-100 text-yellow-600"
-                                  : "bg-red-100 text-red-600"
-                              }
-                            `}
+                        <div className="flex gap-4">
+
+                          <button
+
+                            onClick={() => {
+
+                              window.open(
+
+                                `http://127.0.0.1:8000/download-report/${report._id}`,
+
+                                "_blank"
+                              )
+                            }}
+
+                            className="bg-[#3B82F6] hover:bg-[#2563EB] text-white px-5 py-3 rounded-2xl font-medium transition"
                           >
 
-                            {report.fraud_risk}
+                            Download
 
-                          </span>
+                          </button>
 
-                        </td>
+                          <button
 
-                        <td className="py-5">
-                          {report.confidence_score}%
-                        </td>
+                            onClick={() => {
 
-                      </tr>
+                              window.open(
+
+                                `http://localhost:5173/verify/${report._id}`,
+
+                                "_blank"
+                              )
+                            }}
+
+                            className="bg-gray-100 hover:bg-gray-200 px-5 py-3 rounded-2xl font-medium transition"
+                          >
+
+                            Verify
+
+                          </button>
+
+                        </div>
+
+                      </div>
 
                     ))
                   }
 
-                </tbody>
+                </div>
 
-              </table>
+              </div>
 
-            </div>
+            )
+          }
 
-          </div>
+          {/* ========================= */}
+          {/* ANALYTICS */}
+          {/* ========================= */}
+
+          {
+            activeSection === "analytics" && (
+
+              <div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+
+                <h2 className="text-3xl font-bold">
+                  Fraud Analytics
+                </h2>
+
+                <div className="w-full h-[400px] mt-10">
+
+                  <ResponsiveContainer width="100%" height="100%">
+
+                    <LineChart data={fraudData}>
+
+                      <XAxis dataKey="risk" />
+
+                      <YAxis />
+
+                      <Tooltip />
+
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#3B82F6"
+                        strokeWidth={4}
+                      />
+
+                    </LineChart>
+
+                  </ResponsiveContainer>
+
+                </div>
+
+              </div>
+
+            )
+          }
+
+          {/* ========================= */}
+          {/* SETTINGS */}
+          {/* ========================= */}
+
+          {
+            activeSection === "settings" && (
+
+              <div className="mt-12 bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+
+                <h2 className="text-3xl font-bold">
+                  Settings
+                </h2>
+
+                <div className="mt-8">
+
+                  <button
+
+                    onClick={handleLogout}
+
+                    className="bg-red-500 hover:bg-red-600 transition text-white px-8 py-4 rounded-2xl font-semibold"
+                  >
+
+                    Logout
+
+                  </button>
+
+                </div>
+
+              </div>
+
+            )
+          }
 
         </div>
 
