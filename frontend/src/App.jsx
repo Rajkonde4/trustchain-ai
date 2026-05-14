@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 
 import Home from "./pages/home"
-import Login from "./pages/login"
+import Login from "./pages/Login"
 import Dashboard from "./pages/dashboard"
 import Upload from "./pages/upload"
 import Result from "./pages/result"
 import Signup from "./pages/Signup"
 import ProtectedRoute from "./components/ProtectedRoute"
+import Verify from "./pages/Verify"
+
 function App() {
   return (
     <BrowserRouter>
@@ -24,6 +26,8 @@ function App() {
         <Route path="/upload" element={<Upload />} />
         <Route path="/result" element={<Result />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/verify/:id" element={<Verify />} />
+
       </Routes>
     </BrowserRouter>
   )
