@@ -47,30 +47,36 @@ export default function Login() {
 
       console.log(data)
 
-      // LOGIN SUCCESS
-      if (data.token) {
+      if (data.success) {
 
-        // STORE TOKEN
-        localStorage.setItem(
-          "token",
-          data.token
-        )
+  // STORE TOKEN
+  localStorage.setItem(
 
-        // STORE USER
-        localStorage.setItem(
-          "user",
-          JSON.stringify(data.user)
-        )
+    "token",
 
-        // FORCE REDIRECT
-        window.location.href = "/dashboard"
+    data.data.access_token
+  )
 
-      } else {
+  // STORE USER
+  localStorage.setItem(
 
-        setError(
-          data.message || "Invalid Credentials"
-        )
-      }
+    "user",
+
+    JSON.stringify(
+      data.data.user
+    )
+  )
+
+  // REDIRECT
+  window.location.href = "/dashboard"
+
+} else {
+
+  setError(
+
+    data.message || "Invalid Credentials"
+  )
+}
 
     } catch (error) {
 
