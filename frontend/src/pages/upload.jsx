@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+
 import { useNavigate } from "react-router-dom"
 
 import Navbar from "../components/Navbar"
@@ -44,36 +45,44 @@ export default function Upload() {
 
     if (!file) return
 
+    // =========================
+    // FILE TYPE VALIDATION
+    // =========================
+
     const allowedTypes = [
 
-  "application/pdf",
+      "application/pdf",
 
-  "image/png",
+      "image/png",
 
-  "image/jpeg",
+      "image/jpeg",
 
-  "image/jpg"
-]
+      "image/jpg"
+    ]
 
-if (!allowedTypes.includes(file.type)) {
+    if (!allowedTypes.includes(file.type)) {
 
-  alert(
-    "Only PDF, PNG, JPG and JPEG files are allowed."
-  )
+      alert(
+        "Only PDF, PNG, JPG and JPEG files are allowed."
+      )
 
-  return
-}
+      return
+    }
 
-const maxSize = 10 * 1024 * 1024
+    // =========================
+    // FILE SIZE VALIDATION
+    // =========================
 
-if (file.size > maxSize) {
+    const maxSize = 10 * 1024 * 1024
 
-  alert(
-    "File size must be less than 10MB."
-  )
+    if (file.size > maxSize) {
 
-  return
-}
+      alert(
+        "File size must be less than 10MB."
+      )
+
+      return
+    }
 
     setSelectedFile(file)
 
@@ -90,11 +99,15 @@ if (file.size > maxSize) {
       formData.append("file", file)
 
       const response = await fetch(
+
         `${API_URL}/upload`,
+
         {
+
           method: "POST",
 
           headers: {
+
             Authorization: `Bearer ${token}`
           },
 
@@ -104,58 +117,59 @@ if (file.size > maxSize) {
 
       const data = await response.json()
 
-      if (
-
-  data.message === "Unsupported File Type"
-
-  || data.message === "Empty File"
-
-  || data.message === "File Too Large"
-
-) {
-
-  alert(data.message)
-
-  setIsUploading(false)
-
-  return
-}
-
       console.log(data)
 
-      // INVALID TOKEN
-      if (
+      // =========================
+      // FAILED RESPONSE
+      // =========================
 
-        data.message === "Unauthorized"
+      if (!data.success) {
 
-        || data.message === "Invalid Token"
+        // INVALID TOKEN
+        if (
 
-      ) {
+          data.message === "Unauthorized"
 
-        alert("Please Login Again")
+          || data.message === "Invalid Token"
+        ) {
 
-        localStorage.clear()
+          alert("Please Login Again")
 
-        navigate("/login")
+          localStorage.clear()
+
+          navigate("/login")
+
+          return
+        }
+
+        // OTHER ERRORS
+        alert(data.message)
+
+        setIsUploading(false)
 
         return
       }
 
-      // REDIRECT TO RESULT PAGE
+      // =========================
+      // SUCCESS
+      // =========================
+
       navigate(
-  `/result/${data.report_id}`
-)
+        `/result/${data.data.report_id}`
+      )
 
     } catch (error) {
 
-  console.log(error)
+      console.log(error)
 
-  alert(
-    "Something went wrong while uploading the document."
-  )
-}
+      alert(
+        "Something went wrong while uploading the document."
+      )
 
-    setIsUploading(false)
+    } finally {
+
+      setIsUploading(false)
+    }
   }
 
   // =========================
@@ -230,7 +244,9 @@ if (file.size > maxSize) {
         <div className="text-center">
 
           <p className="text-[#3B82F6] uppercase tracking-[0.2em] text-sm font-semibold">
+
             AI Verification Platform
+
           </p>
 
           <h1 className="text-5xl md:text-6xl font-bold mt-6 leading-tight">
@@ -333,6 +349,7 @@ if (file.size > maxSize) {
 
             {/* LOADING */}
             {
+
               isUploading && (
 
                 <div className="mt-10 flex justify-center">
@@ -431,6 +448,5 @@ if (file.size > maxSize) {
       </div>
 
     </div>
-
   )
 }
