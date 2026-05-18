@@ -1,8 +1,24 @@
+from app.utils.response_handler import (
+
+    success_response,
+
+    error_response
+)
+
+
 from fastapi import (
     APIRouter,
     UploadFile,
     File,
     Header
+)
+
+from bson import ObjectId
+
+import hashlib
+
+from app.config.settings import (
+    FRONTEND_URL
 )
 
 from app.utils.auth_utils import (
@@ -23,13 +39,12 @@ from app.services.pdf_service import (
     generate_pdf_report
 )
 
-import hashlib
-
-from bson import ObjectId
-
 router = APIRouter()
 
-# THESE WILL BE INJECTED
+# =========================
+# INJECTED COLLECTION
+# =========================
+
 reports_collection = None
 
 # =========================
@@ -50,9 +65,9 @@ async def upload_file(
 
     if not authorization:
 
-        return {
-            "message": "Unauthorized"
-        }
+      return error_response(
+    "Unauthorized"
+)
 
     token = authorization.split(" ")[1]
 
@@ -60,9 +75,11 @@ async def upload_file(
 
     if not payload:
 
-        return {
-            "message": "Invalid Token"
-        }
+        return error_response(
+    "Invalid Token"
+)
+
+    user_email = payload.get("email")
 
     # =========================
     # VALIDATE FILE TYPE
@@ -72,9 +89,13 @@ async def upload_file(
         file.content_type
     ):
 
-        return {
-            "message": "Unsupported File Type"
-        }
+        return error_response(
+    "Unsupported File Type"
+)
+
+    # =========================
+    # READ FILE
+    # =========================
 
     contents = await file.read()
 
@@ -86,9 +107,9 @@ async def upload_file(
         len(contents)
     ):
 
-        return {
-            "message": "File Too Large"
-        }
+        return error_response(
+    "File Too Large"
+)
 
     # =========================
     # OCR EXTRACTION
@@ -130,14 +151,16 @@ async def upload_file(
     # CREATE REPORT ID
     # =========================
 
-    report_id = str(ObjectId())
+    report_id = str(
+        ObjectId()
+    )
 
     # =========================
     # VERIFICATION URL
     # =========================
 
     verification_url = (
-        f"http://localhost:5173/verify/{report_id}"
+        f"{FRONTEND_URL}/verify/{report_id}"
     )
 
     # =========================
@@ -197,20 +220,31 @@ async def upload_file(
 
         "document_hash": document_hash,
 
-        "pdf_report": pdf_file
+        "pdf_report": pdf_file,
+
+        "extracted_text": extracted_text,
+
+        "metadata": metadata,
+
+        "verification_url": verification_url,
+
+        "user_email": user_email
     })
 
     # =========================
     # RESPONSE
     # =========================
 
-    return {
+    return success_response(
 
-        "message": "Upload modular architecture working",
+        "Upload successful",
 
-        "report_id": report_id,
+        {
 
-        "document_hash": document_hash,
+            "report_id": report_id,
 
-        "text_preview": extracted_text[:300]
-    }
+            "document_hash": document_hash,
+
+            "text_preview": extracted_text[:300]
+        }
+    )
