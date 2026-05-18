@@ -1,40 +1,68 @@
 from fastapi import APIRouter
 
 from app.utils.auth_utils import (
+
     hash_password,
+
     verify_password,
+
     create_access_token
 )
 
-from bson import ObjectId
+from app.utils.response_handler import (
+
+    success_response,
+
+    error_response
+)
+
+from app.models.auth_models import (
+
+    SignupRequest,
+
+    LoginRequest
+)
+
+from app.models.response_models import (
+    StandardResponse
+)
 
 router = APIRouter()
 
-# THESE WILL BE INJECTED
+# =========================
+# INJECTED COLLECTION
+# =========================
+
 users_collection = None
 
 # =========================
 # SIGNUP
 # =========================
 
-@router.post("/signup")
-def signup(data: dict):
+@router.post(
+    "/signup",
+    response_model=StandardResponse
+)
+def signup(data: SignupRequest):
 
     existing_user = users_collection.find_one({
 
-        "email": data["email"]
+        "email": data.email
     })
 
+    # USER EXISTS
     if existing_user:
 
-        return {
-            "message": "User already exists"
-        }
+        return error_response(
+            "User already exists"
+        )
 
+    # HASH PASSWORD
     hashed_password = hash_password(
-        data["password"]
+        data.password
     )
 
+    # USER DATA
     user_data = {
 
         "name": data["name"],
@@ -44,45 +72,53 @@ def signup(data: dict):
         "password": hashed_password
     }
 
+    # SAVE USER
     users_collection.insert_one(
         user_data
     )
 
-    return {
-        "message": "Signup successful"
-    }
+    return success_response(
+        "Signup successful"
+    )
 
 # =========================
 # LOGIN
 # =========================
 
-@router.post("/login")
-def login(data: dict):
+@router.post(
+    "/login",
+    response_model=StandardResponse
+)
+def login(data: LoginRequest):
 
     user = users_collection.find_one({
 
-        "email": data["email"]
+        "email": data.email
     })
 
+    # INVALID EMAIL
     if not user:
 
-        return {
-            "message": "Invalid Email"
-        }
+        return error_response(
+            "Invalid Email"
+        )
 
+    # VERIFY PASSWORD
     valid_password = verify_password(
 
-        data["password"],
+        data.password,
 
         user["password"]
     )
 
+    # INVALID PASSWORD
     if not valid_password:
 
-        return {
-            "message": "Invalid Password"
-        }
+        return error_response(
+            "Invalid Password"
+        )
 
+    # CREATE TOKEN
     token = create_access_token({
 
         "email": user["email"],
@@ -90,18 +126,22 @@ def login(data: dict):
         "name": user["name"]
     })
 
-    return {
+    # SUCCESS RESPONSE
+    return success_response(
 
-        "message": "Login successful",
+        "Login successful",
 
-        "token": token,
+        {
 
-        "user": {
+            "access_token": token,
 
-            "id": str(user["_id"]),
+            "user": {
 
-            "name": user["name"],
+                "id": str(user["_id"]),
 
-            "email": user["email"]
+                "name": user["name"],
+
+                "email": user["email"]
+            }
         }
-    }
+    )

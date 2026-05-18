@@ -2,19 +2,16 @@ from jose import jwt
 
 from passlib.context import CryptContext
 
-from dotenv import load_dotenv
 
-import os
 
 # =========================
 # LOAD ENV VARIABLES
 # =========================
 
-load_dotenv()
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-ALGORITHM = os.getenv("ALGORITHM")
+from app.config.settings import (
+    SECRET_KEY,
+    ALGORITHM
+)
 
 # =========================
 # PASSWORD HASHING
