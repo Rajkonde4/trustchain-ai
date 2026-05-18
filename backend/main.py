@@ -1,4 +1,5 @@
 import fitz
+from bson import ObjectId
 
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
@@ -6,7 +7,6 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.styles import ParagraphStyle
 
 from fastapi import Header
-from jose import JWTError
 
 from jose import jwt
 from passlib.context import CryptContext
@@ -17,6 +17,32 @@ import qrcode
 import hashlib
 import re
 import io
+
+from app.routes import upload_routes
+
+from app.utils.auth_utils import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    verify_token
+)
+
+from app.utils.validators import (
+    validate_file_type,
+    validate_file_size
+)
+
+from app.services.ocr_service import (
+    extract_text_from_pdf,
+    extract_text_from_image
+)
+
+from app.services.fraud_service import (
+    analyze_document_risk
+)
+
+from app.routes import auth_routes
+
 
 from pymongo import MongoClient
 
@@ -62,6 +88,15 @@ pytesseract.pytesseract.tesseract_cmd = (
 
 app = FastAPI()
 
+app.include_router(
+    auth_routes.router
+)
+
+app.include_router(
+    upload_routes.router
+)
+
+
 # =========================
 # PASSWORD HASHING
 # =========================
@@ -75,13 +110,19 @@ pwd_context = CryptContext(
 # MONGODB CONNECTION
 # =========================
 
-client = MongoClient("mongodb://localhost:27017")
+MONGO_URI = os.getenv("MONGO_URI")
+
+client = MongoClient(MONGO_URI)
 
 db = client["trustchain_ai"]
 
 reports_collection = db["verification_reports"]
 
 users_collection = db["users"]
+
+auth_routes.users_collection = users_collection
+
+upload_routes.reports_collection = reports_collection
 
 # =========================
 # CORS
@@ -275,15 +316,55 @@ async def upload_file(
     token = authorization.split(" ")[1]
 
     payload = verify_token(token)
-    user_email = payload.get("email")
 
+    # INVALID TOKEN
     if not payload:
 
         return {
             "message": "Invalid Token"
         }
 
+    user_email = payload.get("email")
+
+    # =========================
+    # FILE VALIDATION
+    # =========================
+
+    allowed_types = [
+
+        "application/pdf",
+
+        "image/png",
+
+        "image/jpeg",
+
+        "image/jpg"
+    ]
+
+    # INVALID FILE TYPE
+    if file.content_type not in allowed_types:
+
+        return {
+            "message": "Unsupported File Type"
+        }
+
     contents = await file.read()
+
+    # EMPTY FILE
+    if not contents:
+
+        return {
+            "message": "Empty File"
+        }
+
+    # FILE SIZE LIMIT
+    max_size = 10 * 1024 * 1024
+
+    if len(contents) > max_size:
+
+        return {
+            "message": "File Too Large"
+        }
 
     # =========================
     # HASH GENERATION
@@ -378,7 +459,7 @@ async def upload_file(
 
     upper_text = extracted_text.upper()
 
-        # =========================
+    # =========================
     # DOCUMENT CLASSIFICATION
     # =========================
 
@@ -657,7 +738,7 @@ async def upload_file(
 
             break
 
-        # =========================
+    # =========================
     # PASSPORT EXTRACTION
     # =========================
 
@@ -898,48 +979,7 @@ async def upload_file(
 
             voter_id = voter_match.group()   
 
-            # =========================
-    # PASSPORT EXTRACTION
     # =========================
-
-    passport_number = "Not Found"
-
-    nationality = "Not Found"
-
-    expiry_date = "Not Found"
-
-    if document_category == "Passport":
-
-        # PASSPORT NUMBER
-        passport_pattern = r"[A-Z]{1}[0-9]{7}"
-
-        passport_match = re.search(
-            passport_pattern,
-            extracted_text
-        )
-
-        if passport_match:
-
-            passport_number = passport_match.group()
-
-        # NATIONALITY
-        if "INDIAN" in upper_text:
-
-            nationality = "Indian"
-
-        # EXPIRY DATE
-        expiry_pattern = r"\d{2}/\d{2}/\d{4}"
-
-        expiry_matches = re.findall(
-            expiry_pattern,
-            extracted_text
-        )
-
-        if len(expiry_matches) >= 2:
-
-            expiry_date = expiry_matches[-1]
-
-        # =========================
     # FRAUD DETECTION
     # =========================
 
@@ -1123,8 +1163,12 @@ async def upload_file(
     pdf_file = f"reports/report_{report_id}.pdf"
     
 
+    FRONTEND_URL = os.getenv(
+        "FRONTEND_URL"
+    )
+
     verification_url = (
-        f"http://localhost:5173/verify/{report_id}"
+        f"{FRONTEND_URL}/verify/{report_id}"
     )
 
     qr = qrcode.make(
@@ -1471,6 +1515,52 @@ def get_reports(
         )
 
     return reports
+
+# =========================
+# GET SINGLE REPORT
+# =========================
+
+@app.get("/report/{report_id}")
+def get_single_report(
+    report_id: str,
+    authorization: str = Header(None)
+):
+
+    # CHECK AUTH TOKEN
+    if not authorization:
+
+        return {
+            "message": "Unauthorized"
+        }
+
+    token = authorization.split(" ")[1]
+
+    payload = verify_token(token)
+
+    if not payload:
+
+        return {
+            "message": "Invalid Token"
+        }
+
+    user_email = payload.get("email")
+
+    report = reports_collection.find_one({
+
+        "_id": ObjectId(report_id),
+
+        "user_email": user_email
+    })
+
+    if not report:
+
+        return {
+            "message": "Report not found"
+        }
+
+    report["_id"] = str(report["_id"])
+
+    return report
 
 # =========================
 # DOWNLOAD PDF REPORT
