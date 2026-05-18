@@ -13,22 +13,43 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>
-        <Route path="/upload" element={<Upload />} />
-        <Route path="/result" element={<Result />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/verify/:id" element={<Verify />} />
 
-      </Routes>
+  <Route path="/" element={<Home />} />
+
+  <Route path="/login" element={<Login />} />
+
+  <Route path="/signup" element={<Signup />} />
+
+  <Route
+    path="/dashboard"
+    element={
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/upload"
+    element={
+      <ProtectedRoute>
+        <Upload />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/result/:id"
+    element={
+      <ProtectedRoute>
+        <Result />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route path="/verify/:id" element={<Verify />} />
+
+</Routes>
     </BrowserRouter>
   )
 }

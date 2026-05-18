@@ -1,17 +1,113 @@
-import { useLocation, useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+
+import {
+  useNavigate,
+  useParams
+} from "react-router-dom"
 
 import Navbar from "../components/Navbar"
 
 export default function Result() {
 
-  const location = useLocation()
+  const { id } = useParams()
 
   const navigate = useNavigate()
 
-  const report = location.state
+  const [report, setReport] = useState(null)
 
-  // NO DATA
-  if (!report) {
+  const [loading, setLoading] = useState(true)
+
+  // =========================
+  // FETCH REPORT
+  // =========================
+
+  useEffect(() => {
+
+    const fetchReport = async () => {
+
+      try {
+
+        const token = localStorage.getItem(
+          "token"
+        )
+
+        if (!token) {
+
+          navigate("/login")
+
+          return
+        }
+
+        const response = await fetch(
+
+          `http://127.0.0.1:8000/report/${id}`,
+
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        )
+
+        const data = await response.json()
+
+        console.log(data)
+
+        if (
+
+          data.message === "Unauthorized"
+
+          || data.message === "Invalid Token"
+
+        ) {
+
+          localStorage.clear()
+
+          navigate("/login")
+
+          return
+        }
+
+        setReport(data)
+
+      } catch (error) {
+
+        console.log(error)
+
+      }
+
+      setLoading(false)
+    }
+
+    fetchReport()
+
+  }, [id])
+
+  // =========================
+  // LOADING
+  // =========================
+
+  if (loading) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FB]">
+
+        <div className="text-3xl font-bold">
+
+          Loading Report...
+
+        </div>
+
+      </div>
+    )
+  }
+
+  // =========================
+  // NO REPORT
+  // =========================
+
+  if (!report || report.message) {
 
     return (
 
@@ -20,7 +116,7 @@ export default function Result() {
         <div className="bg-white p-10 rounded-3xl shadow-xl text-center">
 
           <h1 className="text-4xl font-bold">
-            No Report Found
+            Report Not Found
           </h1>
 
           <button
@@ -131,210 +227,6 @@ export default function Result() {
 
         </div>
 
-        {/* EXTRACTED DATA */}
-        <div className="mt-14 bg-white rounded-3xl shadow-sm border border-gray-200 p-10">
-
-          <h2 className="text-4xl font-bold">
-            Extracted Intelligence
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-
-            {/* COMMON DATA */}
-            <div className="bg-gray-50 rounded-2xl p-6">
-
-              <p className="text-gray-500">
-                Name
-              </p>
-
-              <h3 className="text-2xl font-semibold mt-3">
-                {report.name}
-              </h3>
-
-            </div>
-
-            {/* PAN */}
-            {
-              report.pan_number !== "Not Found" && (
-
-                <div className="bg-gray-50 rounded-2xl p-6">
-
-                  <p className="text-gray-500">
-                    PAN Number
-                  </p>
-
-                  <h3 className="text-2xl font-semibold mt-3">
-                    {report.pan_number}
-                  </h3>
-
-                </div>
-
-              )
-            }
-
-            {/* AADHAAR */}
-            {
-              report.aadhaar_number !== "Not Found" && (
-
-                <div className="bg-gray-50 rounded-2xl p-6">
-
-                  <p className="text-gray-500">
-                    Aadhaar Number
-                  </p>
-
-                  <h3 className="text-2xl font-semibold mt-3">
-                    {report.aadhaar_number}
-                  </h3>
-
-                </div>
-
-              )
-            }
-
-            {/* PASSPORT */}
-            {
-              report.passport_number !== "Not Found" && (
-
-                <>
-
-                  <div className="bg-gray-50 rounded-2xl p-6">
-
-                    <p className="text-gray-500">
-                      Passport Number
-                    </p>
-
-                    <h3 className="text-2xl font-semibold mt-3">
-                      {report.passport_number}
-                    </h3>
-
-                  </div>
-
-                  <div className="bg-gray-50 rounded-2xl p-6">
-
-                    <p className="text-gray-500">
-                      Nationality
-                    </p>
-
-                    <h3 className="text-2xl font-semibold mt-3">
-                      {report.nationality}
-                    </h3>
-
-                  </div>
-
-                </>
-
-              )
-            }
-
-            {/* RESUME */}
-            {
-              report.resume_email !== "Not Found" && (
-
-                <>
-
-                  <div className="bg-gray-50 rounded-2xl p-6">
-
-                    <p className="text-gray-500">
-                      Resume Email
-                    </p>
-
-                    <h3 className="text-xl font-semibold mt-3 break-all">
-                      {report.resume_email}
-                    </h3>
-
-                  </div>
-
-                  <div className="bg-gray-50 rounded-2xl p-6">
-
-                    <p className="text-gray-500">
-                      Phone Number
-                    </p>
-
-                    <h3 className="text-2xl font-semibold mt-3">
-                      {report.resume_phone}
-                    </h3>
-
-                  </div>
-
-                </>
-
-              )
-            }
-
-            {/* BANK */}
-            {
-              report.bank_name !== "Not Found" && (
-
-                <>
-
-                  <div className="bg-gray-50 rounded-2xl p-6">
-
-                    <p className="text-gray-500">
-                      Bank Name
-                    </p>
-
-                    <h3 className="text-2xl font-semibold mt-3">
-                      {report.bank_name}
-                    </h3>
-
-                  </div>
-
-                  <div className="bg-gray-50 rounded-2xl p-6">
-
-                    <p className="text-gray-500">
-                      IFSC Code
-                    </p>
-
-                    <h3 className="text-2xl font-semibold mt-3">
-                      {report.ifsc_code}
-                    </h3>
-
-                  </div>
-
-                </>
-
-              )
-            }
-
-            {/* CERTIFICATE */}
-            {
-              report.university_name !== "Not Found" && (
-
-                <>
-
-                  <div className="bg-gray-50 rounded-2xl p-6">
-
-                    <p className="text-gray-500">
-                      University
-                    </p>
-
-                    <h3 className="text-2xl font-semibold mt-3">
-                      {report.university_name}
-                    </h3>
-
-                  </div>
-
-                  <div className="bg-gray-50 rounded-2xl p-6">
-
-                    <p className="text-gray-500">
-                      CGPA
-                    </p>
-
-                    <h3 className="text-2xl font-semibold mt-3">
-                      {report.cgpa}
-                    </h3>
-
-                  </div>
-
-                </>
-
-              )
-            }
-
-          </div>
-
-        </div>
-
         {/* OCR TEXT */}
         <div className="mt-14 bg-white rounded-3xl shadow-sm border border-gray-200 p-10">
 
@@ -359,7 +251,7 @@ export default function Result() {
 
               window.open(
 
-                `http://127.0.0.1:8000/download-report/${report.report_id}`,
+                `http://127.0.0.1:8000/download-report/${id}`,
 
                 "_blank"
               )
@@ -378,7 +270,7 @@ export default function Result() {
 
               window.open(
 
-                `http://localhost:5173/verify/${report.report_id}`,
+                `http://localhost:5173/verify/${id}`,
 
                 "_blank"
               )

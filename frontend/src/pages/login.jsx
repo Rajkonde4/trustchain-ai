@@ -48,12 +48,12 @@ export default function Login() {
       console.log(data)
 
       // LOGIN SUCCESS
-      if (data.access_token) {
+      if (data.token) {
 
         // STORE TOKEN
         localStorage.setItem(
           "token",
-          data.access_token
+          data.token
         )
 
         // STORE USER

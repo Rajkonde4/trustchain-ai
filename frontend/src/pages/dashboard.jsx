@@ -16,7 +16,16 @@ export default function Dashboard() {
 
   const navigate = useNavigate()
 
+  const API_URL = import.meta.env.VITE_API_URL
+
+  const FRONTEND_URL =
+    import.meta.env.VITE_FRONTEND_URL
+
   const [reports, setReports] = useState([])
+
+  const [loading, setLoading] = useState(true)
+
+  const [error, setError] = useState("")
 
   const [activeSection, setActiveSection] = useState(
     "overview"
@@ -41,7 +50,7 @@ export default function Dashboard() {
     }
 
     fetch(
-      "http://127.0.0.1:8000/reports",
+      `${API_URL}/reports`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -69,14 +78,23 @@ export default function Dashboard() {
 
         setReports(data)
 
+        setLoading(false)
+
       })
 
       .catch((error) => {
 
         console.log(error)
+
+        setError(
+          "Failed to load dashboard data."
+        )
+
+        setLoading(false)
+
       })
 
-  }, [navigate])
+  }, [navigate, API_URL])
 
   // =========================
   // ANALYTICS
@@ -137,6 +155,52 @@ export default function Dashboard() {
     localStorage.clear()
 
     navigate("/login")
+  }
+
+  // =========================
+  // LOADING
+  // =========================
+
+  if (loading) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FB]">
+
+        <div className="text-3xl font-bold">
+
+          Loading Dashboard...
+
+        </div>
+
+      </div>
+    )
+  }
+
+  // =========================
+  // ERROR
+  // =========================
+
+  if (error) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FB]">
+
+        <div className="bg-white p-10 rounded-3xl shadow-xl text-center">
+
+          <h1 className="text-4xl font-bold text-red-500">
+            Error
+          </h1>
+
+          <p className="mt-4 text-gray-500">
+            {error}
+          </p>
+
+        </div>
+
+      </div>
+    )
   }
 
   return (
@@ -408,87 +472,109 @@ export default function Dashboard() {
                   Uploaded Documents
                 </h2>
 
-                <div className="mt-8 overflow-x-auto">
+                {
+                  reports.length === 0 && (
 
-                  <table className="w-full">
+                    <div className="text-center py-16">
 
-                    <thead>
+                      <h2 className="text-3xl font-bold">
+                        No Uploads Yet
+                      </h2>
 
-                      <tr className="text-left text-gray-500 border-b border-gray-100">
+                      <p className="text-gray-500 mt-4">
+                        Upload documents to view analytics.
+                      </p>
 
-                        <th className="pb-4">
-                          Document
-                        </th>
+                    </div>
+                  )
+                }
 
-                        <th className="pb-4">
-                          Category
-                        </th>
+                {
+                  reports.length > 0 && (
 
-                        <th className="pb-4">
-                          Risk
-                        </th>
+                    <div className="mt-8 overflow-x-auto">
 
-                        <th className="pb-4">
-                          Score
-                        </th>
+                      <table className="w-full">
 
-                      </tr>
+                        <thead>
 
-                    </thead>
+                          <tr className="text-left text-gray-500 border-b border-gray-100">
 
-                    <tbody>
+                            <th className="pb-4">
+                              Document
+                            </th>
 
-                      {
-                        reports.map((report) => (
+                            <th className="pb-4">
+                              Category
+                            </th>
 
-                          <tr
-                            key={report._id}
-                            className="border-b border-gray-100"
-                          >
+                            <th className="pb-4">
+                              Risk
+                            </th>
 
-                            <td className="py-5">
-                              {report.filename}
-                            </td>
-
-                            <td className="py-5">
-                              {report.document_category}
-                            </td>
-
-                            <td className="py-5">
-
-                              <span
-                                className={`px-4 py-2 rounded-xl text-sm font-medium
-
-                                  ${
-                                    report.fraud_risk === "Low"
-                                      ? "bg-green-100 text-green-600"
-                                      : report.fraud_risk === "Medium"
-                                      ? "bg-yellow-100 text-yellow-600"
-                                      : "bg-red-100 text-red-600"
-                                  }
-                                `}
-                              >
-
-                                {report.fraud_risk}
-
-                              </span>
-
-                            </td>
-
-                            <td className="py-5">
-                              {report.confidence_score}%
-                            </td>
+                            <th className="pb-4">
+                              Score
+                            </th>
 
                           </tr>
 
-                        ))
-                      }
+                        </thead>
 
-                    </tbody>
+                        <tbody>
 
-                  </table>
+                          {
+                            reports.map((report) => (
 
-                </div>
+                              <tr
+                                key={report._id}
+                                className="border-b border-gray-100"
+                              >
+
+                                <td className="py-5">
+                                  {report.filename}
+                                </td>
+
+                                <td className="py-5">
+                                  {report.document_category}
+                                </td>
+
+                                <td className="py-5">
+
+                                  <span
+                                    className={`px-4 py-2 rounded-xl text-sm font-medium
+
+                                      ${
+                                        report.fraud_risk === "Low"
+                                          ? "bg-green-100 text-green-600"
+                                          : report.fraud_risk === "Medium"
+                                          ? "bg-yellow-100 text-yellow-600"
+                                          : "bg-red-100 text-red-600"
+                                      }
+                                    `}
+                                  >
+
+                                    {report.fraud_risk}
+
+                                  </span>
+
+                                </td>
+
+                                <td className="py-5">
+                                  {report.confidence_score}%
+                                </td>
+
+                              </tr>
+
+                            ))
+                          }
+
+                        </tbody>
+
+                      </table>
+
+                    </div>
+                  )
+                }
 
               </div>
 
@@ -508,76 +594,98 @@ export default function Dashboard() {
                   Reports Center
                 </h2>
 
-                <div className="mt-8 space-y-5">
+                {
+                  reports.length === 0 && (
 
-                  {
-                    reports.map((report) => (
+                    <div className="text-center py-16">
 
-                      <div
-                        key={report._id}
-                        className="border border-gray-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5"
-                      >
+                      <h2 className="text-3xl font-bold">
+                        No Reports Available
+                      </h2>
 
-                        <div>
+                      <p className="text-gray-500 mt-4">
+                        Upload documents to generate reports.
+                      </p>
 
-                          <h3 className="text-xl font-semibold">
-                            {report.filename}
-                          </h3>
+                    </div>
+                  )
+                }
 
-                          <p className="text-gray-500 mt-2">
-                            {report.document_category}
-                          </p>
+                {
+                  reports.length > 0 && (
 
-                        </div>
+                    <div className="mt-8 space-y-5">
 
-                        <div className="flex gap-4">
+                      {
+                        reports.map((report) => (
 
-                          <button
-
-                            onClick={() => {
-
-                              window.open(
-
-                                `http://127.0.0.1:8000/download-report/${report._id}`,
-
-                                "_blank"
-                              )
-                            }}
-
-                            className="bg-[#3B82F6] hover:bg-[#2563EB] text-white px-5 py-3 rounded-2xl font-medium transition"
+                          <div
+                            key={report._id}
+                            className="border border-gray-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5"
                           >
 
-                            Download
+                            <div>
 
-                          </button>
+                              <h3 className="text-xl font-semibold">
+                                {report.filename}
+                              </h3>
 
-                          <button
+                              <p className="text-gray-500 mt-2">
+                                {report.document_category}
+                              </p>
 
-                            onClick={() => {
+                            </div>
 
-                              window.open(
+                            <div className="flex gap-4">
 
-                                `http://localhost:5173/verify/${report._id}`,
+                              <button
 
-                                "_blank"
-                              )
-                            }}
+                                onClick={() => {
 
-                            className="bg-gray-100 hover:bg-gray-200 px-5 py-3 rounded-2xl font-medium transition"
-                          >
+                                  window.open(
 
-                            Verify
+                                    `${API_URL}/download-report/${report._id}`,
 
-                          </button>
+                                    "_blank"
+                                  )
+                                }}
 
-                        </div>
+                                className="bg-[#3B82F6] hover:bg-[#2563EB] text-white px-5 py-3 rounded-2xl font-medium transition"
+                              >
 
-                      </div>
+                                Download
 
-                    ))
-                  }
+                              </button>
 
-                </div>
+                              <button
+
+                                onClick={() => {
+
+                                  window.open(
+
+                                    `${FRONTEND_URL}/verify/${report._id}`,
+
+                                    "_blank"
+                                  )
+                                }}
+
+                                className="bg-gray-100 hover:bg-gray-200 px-5 py-3 rounded-2xl font-medium transition"
+                              >
+
+                                Verify
+
+                              </button>
+
+                            </div>
+
+                          </div>
+
+                        ))
+                      }
+
+                    </div>
+                  )
+                }
 
               </div>
 

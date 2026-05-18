@@ -7,6 +7,8 @@ export default function Upload() {
 
   const navigate = useNavigate()
 
+  const API_URL = import.meta.env.VITE_API_URL
+
   const [selectedFile, setSelectedFile] = useState(null)
 
   const [isDragging, setIsDragging] = useState(false)
@@ -42,6 +44,37 @@ export default function Upload() {
 
     if (!file) return
 
+    const allowedTypes = [
+
+  "application/pdf",
+
+  "image/png",
+
+  "image/jpeg",
+
+  "image/jpg"
+]
+
+if (!allowedTypes.includes(file.type)) {
+
+  alert(
+    "Only PDF, PNG, JPG and JPEG files are allowed."
+  )
+
+  return
+}
+
+const maxSize = 10 * 1024 * 1024
+
+if (file.size > maxSize) {
+
+  alert(
+    "File size must be less than 10MB."
+  )
+
+  return
+}
+
     setSelectedFile(file)
 
     setIsUploading(true)
@@ -57,7 +90,7 @@ export default function Upload() {
       formData.append("file", file)
 
       const response = await fetch(
-        "http://127.0.0.1:8000/upload",
+        `${API_URL}/upload`,
         {
           method: "POST",
 
@@ -70,6 +103,23 @@ export default function Upload() {
       )
 
       const data = await response.json()
+
+      if (
+
+  data.message === "Unsupported File Type"
+
+  || data.message === "Empty File"
+
+  || data.message === "File Too Large"
+
+) {
+
+  alert(data.message)
+
+  setIsUploading(false)
+
+  return
+}
 
       console.log(data)
 
@@ -93,18 +143,17 @@ export default function Upload() {
 
       // REDIRECT TO RESULT PAGE
       navigate(
-        "/result",
-        {
-          state: data
-        }
-      )
+  `/result/${data.report_id}`
+)
 
     } catch (error) {
 
-      console.log(error)
+  console.log(error)
 
-      alert("Upload Failed")
-    }
+  alert(
+    "Something went wrong while uploading the document."
+  )
+}
 
     setIsUploading(false)
   }
