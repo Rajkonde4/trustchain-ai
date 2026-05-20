@@ -5,7 +5,6 @@ from app.utils.response_handler import (
     error_response
 )
 
-
 from fastapi import (
     APIRouter,
     UploadFile,
@@ -39,6 +38,29 @@ from app.services.pdf_service import (
     generate_pdf_report
 )
 
+from app.services.field_extraction_service import (
+
+    extract_name,
+
+    extract_pan_number,
+
+    extract_aadhaar_number,
+
+    extract_dob,
+
+    extract_invoice_number,
+
+    extract_total_amount
+)
+
+from app.services.document_classifier_service import (
+    classify_document
+)
+
+from app.services.fraud_detection_service import (
+    analyze_document
+)
+
 router = APIRouter()
 
 # =========================
@@ -65,9 +87,9 @@ async def upload_file(
 
     if not authorization:
 
-      return error_response(
-    "Unauthorized"
-)
+        return error_response(
+            "Unauthorized"
+        )
 
     token = authorization.split(" ")[1]
 
@@ -76,8 +98,8 @@ async def upload_file(
     if not payload:
 
         return error_response(
-    "Invalid Token"
-)
+            "Invalid Token"
+        )
 
     user_email = payload.get("email")
 
@@ -90,8 +112,8 @@ async def upload_file(
     ):
 
         return error_response(
-    "Unsupported File Type"
-)
+            "Unsupported File Type"
+        )
 
     # =========================
     # READ FILE
@@ -108,8 +130,8 @@ async def upload_file(
     ):
 
         return error_response(
-    "File Too Large"
-)
+            "File Too Large"
+        )
 
     # =========================
     # OCR EXTRACTION
@@ -136,16 +158,67 @@ async def upload_file(
     ).hexdigest()
 
     # =========================
-    # BASIC ANALYSIS
+    # FIELD EXTRACTION
     # =========================
 
-    document_category = "Unknown Document"
+    name = extract_name(
+        extracted_text
+    )
 
-    verification_status = "Verified"
+    pan_number = extract_pan_number(
+        extracted_text
+    )
 
-    fraud_risk = "Low"
+    aadhaar_number = extract_aadhaar_number(
+        extracted_text
+    )
 
-    confidence_score = 85
+    dob = extract_dob(
+        extracted_text
+    )
+
+    invoice_number = extract_invoice_number(
+        extracted_text
+    )
+
+    total_amount = extract_total_amount(
+        extracted_text
+    )
+
+    # =========================
+    # DOCUMENT CLASSIFICATION
+    # =========================
+
+    document_category = classify_document(
+        extracted_text
+    )
+
+    # =========================
+    # FRAUD ANALYSIS
+    # =========================
+
+    analysis = analyze_document(
+
+        extracted_text=extracted_text,
+
+        metadata=metadata,
+
+        document_category=document_category,
+
+        pan_number=pan_number,
+
+        aadhaar_number=aadhaar_number,
+
+        name=name
+    )
+
+    fraud_risk = analysis["fraud_risk"]
+
+    verification_status = analysis["verification_status"]
+
+    confidence_score = analysis["confidence_score"]
+
+    fraud_reasons = analysis["reasons"]
 
     # =========================
     # CREATE REPORT ID
@@ -183,21 +256,23 @@ async def upload_file(
 
         document_hash=document_hash,
 
-        name="Not Extracted",
+        name=name,
 
-        pan_number="Not Found",
+        pan_number=pan_number,
 
-        aadhaar_number="Not Found",
+        aadhaar_number=aadhaar_number,
 
-        dob="Not Found",
+        dob=dob,
 
         gender="Not Found",
 
-        invoice_number="Not Found",
+        invoice_number=invoice_number,
 
-        total_amount="Not Found",
+        total_amount=total_amount,
 
-        verification_url=verification_url
+        verification_url=verification_url,
+
+        fraud_reasons=fraud_reasons
     )
 
     # =========================
@@ -228,7 +303,21 @@ async def upload_file(
 
         "verification_url": verification_url,
 
-        "user_email": user_email
+        "user_email": user_email,
+
+        "name": name,
+
+        "pan_number": pan_number,
+
+        "aadhaar_number": aadhaar_number,
+
+        "dob": dob,
+
+        "invoice_number": invoice_number,
+
+        "total_amount": total_amount,
+
+        "fraud_reasons": fraud_reasons,
     })
 
     # =========================
