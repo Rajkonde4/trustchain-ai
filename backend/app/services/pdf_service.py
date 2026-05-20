@@ -52,12 +52,17 @@ def generate_pdf_report(
 
     total_amount,
 
-    verification_url
+    verification_url,
+
+    fraud_reasons,
 ):
 
     pdf_file = f"reports/report_{report_id}.pdf"
 
-    # QR
+    # =========================
+    # GENERATE QR
+    # =========================
+
     qr = qrcode.make(
         verification_url
     )
@@ -66,7 +71,10 @@ def generate_pdf_report(
 
     qr.save(qr_path)
 
-    # PDF DOC
+    # =========================
+    # PDF DOCUMENT
+    # =========================
+
     doc = SimpleDocTemplate(
         pdf_file,
         rightMargin=40,
@@ -79,17 +87,28 @@ def generate_pdf_report(
 
     elements = []
 
+    # =========================
     # TITLE STYLE
+    # =========================
+
     title_style = ParagraphStyle(
         'CustomTitle',
+
         parent=styles['Heading1'],
+
         fontSize=24,
+
         leading=30,
+
         alignment=TA_CENTER,
+
         textColor=colors.HexColor("#2563EB")
     )
 
+    # =========================
     # HEADER
+    # =========================
+
     elements.append(
 
         Paragraph(
@@ -102,7 +121,10 @@ def generate_pdf_report(
         Spacer(1, 25)
     )
 
+    # =========================
     # SUMMARY TABLE
+    # =========================
+
     summary_data = [
 
         ["Field", "Value"],
@@ -117,7 +139,19 @@ def generate_pdf_report(
 
         ["Confidence Score", f"{confidence_score}%"],
 
-        ["Document Hash", document_hash[:40] + "..."]
+        ["Document Hash", document_hash[:40] + "..."],
+
+        ["Extracted Name", name],
+
+        ["PAN Number", pan_number],
+
+        ["Aadhaar Number", aadhaar_number],
+
+        ["Date of Birth", dob],
+
+        ["Invoice Number", invoice_number],
+
+        ["Total Amount", total_amount]
     ]
 
     summary_table = Table(
@@ -148,10 +182,43 @@ def generate_pdf_report(
     elements.append(summary_table)
 
     elements.append(
-        Spacer(1, 30)
+        Spacer(1, 25)
     )
 
+    # =========================
+    # FRAUD ANALYSIS
+    # =========================
+
+    elements.append(
+
+        Paragraph(
+            "Fraud Analysis Reasons",
+            styles['Heading2']
+        )
+    )
+
+    elements.append(
+        Spacer(1, 10)
+    )
+
+    for reason in fraud_reasons:
+
+        elements.append(
+
+            Paragraph(
+                f"• {reason}",
+                styles["BodyText"]
+            )
+        )
+
+    elements.append(
+        Spacer(1, 25)
+    )
+
+    # =========================
     # QR SECTION
+    # =========================
+
     elements.append(
 
         Paragraph(
@@ -183,6 +250,10 @@ def generate_pdf_report(
             styles['BodyText']
         )
     )
+
+    # =========================
+    # BUILD PDF
+    # =========================
 
     doc.build(elements)
 
