@@ -1,3 +1,5 @@
+import re
+
 # =========================
 # FRAUD ANALYSIS ENGINE
 # =========================
@@ -14,7 +16,17 @@ def analyze_document(
 
     aadhaar_number,
 
-    name
+    name,
+
+    dob,
+
+    invoice_number,
+
+    total_amount,
+
+    blur_score,
+
+    quality_status
 ):
 
     risk_score = 0
@@ -33,16 +45,53 @@ def analyze_document(
             "Document type could not be identified"
         )
 
-    # =========================
-    # VERY LOW OCR TEXT
+        # =========================
+    # OCR QUALITY ANALYSIS
     # =========================
 
-    if len(extracted_text) < 50:
+    text_length = len(
+        extracted_text.strip()
+    )
+
+    word_count = len(
+        extracted_text.split()
+    )
+
+    # VERY LOW TEXT
+
+    if text_length < 50:
 
         risk_score += 25
 
         reasons.append(
             "Very low OCR text extracted"
+        )
+
+    # LOW WORD COUNT
+
+    if word_count < 10:
+
+        risk_score += 15
+
+        reasons.append(
+            "Low readable content detected"
+        )
+
+    # SUSPICIOUS OCR QUALITY
+
+    if (
+
+        text_length > 0
+
+        and word_count > 0
+
+        and text_length / word_count < 3
+    ):
+
+        risk_score += 10
+
+        reasons.append(
+            "Poor OCR readability detected"
         )
 
     # =========================
@@ -115,6 +164,140 @@ def analyze_document(
             reasons.append(
                 f"Suspicious editing tool detected: {tool}"
             )
+
+
+        # =========================
+    # EXTRACTION COMPLETENESS
+    # =========================
+
+    missing_fields = 0
+
+    important_fields = [
+
+        name,
+
+        pan_number,
+
+        aadhaar_number,
+
+        dob
+    ]
+
+    for field in important_fields:
+
+        if (
+
+            field == "Not Found"
+
+            or field == "Not Extracted"
+        ):
+
+            missing_fields += 1
+
+    # TOO MANY MISSING FIELDS
+
+    if missing_fields >= 3:
+
+        risk_score += 20
+
+        reasons.append(
+            "Multiple important fields missing"
+        )
+
+    elif missing_fields >= 1:
+
+        risk_score += 10
+
+        reasons.append(
+            "Some important fields missing"
+        )
+
+        # =========================
+    # PAN FORMAT VALIDATION
+    # =========================
+
+    if document_category == "PAN Card":
+
+        valid_pan = re.match(
+
+            r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$",
+
+            pan_number
+        )
+
+        if not valid_pan:
+
+            risk_score += 25
+
+            reasons.append(
+                "Invalid PAN format detected"
+            )
+
+    # =========================
+    # AADHAAR VALIDATION
+    # =========================
+
+    if document_category == "Aadhaar Card":
+
+        valid_aadhaar = re.match(
+
+            r"^\d{4}\s\d{4}\s\d{4}$",
+
+            aadhaar_number
+        )
+
+        if not valid_aadhaar:
+
+            risk_score += 25
+
+            reasons.append(
+                "Invalid Aadhaar format detected"
+            )
+
+    # =========================
+    # SUSPICIOUS NAME CHECK
+    # =========================
+
+    suspicious_names = [
+
+        "TEST",
+
+        "SAMPLE",
+
+        "DEMO",
+
+        "UNKNOWN"
+    ]
+
+    for suspicious in suspicious_names:
+
+        if suspicious in name.upper():
+
+            risk_score += 15
+
+            reasons.append(
+                "Suspicious placeholder name detected"
+            )
+
+    # =========================
+    # IMAGE QUALITY VALIDATION
+    # =========================
+
+    if quality_status == "Very Blurry":
+
+        risk_score += 30
+
+        reasons.append(
+            "Very blurry image detected"
+        )
+
+    elif quality_status == "Blurry":
+
+        risk_score += 15
+
+        reasons.append(
+            "Blurry image quality detected"
+        )
 
     # =========================
     # FINAL FRAUD RISK
