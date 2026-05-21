@@ -61,6 +61,10 @@ from app.services.fraud_detection_service import (
     analyze_document
 )
 
+from app.services.image_analysis_service import (
+    analyze_image_quality
+)
+
 router = APIRouter()
 
 # =========================
@@ -120,6 +124,18 @@ async def upload_file(
     # =========================
 
     contents = await file.read()
+
+     # =========================
+    # IMAGE QUALITY ANALYSIS
+    # =========================
+
+    image_analysis = analyze_image_quality(
+        contents
+    )
+
+    blur_score = image_analysis["blur_score"]
+
+    quality_status = image_analysis["quality_status"]
 
     # =========================
     # VALIDATE FILE SIZE
@@ -209,7 +225,17 @@ async def upload_file(
 
         aadhaar_number=aadhaar_number,
 
-        name=name
+        name=name,
+
+        dob=dob,
+
+        invoice_number=invoice_number,
+
+        total_amount=total_amount,
+
+        blur_score=blur_score,
+
+        quality_status=quality_status,
     )
 
     fraud_risk = analysis["fraud_risk"]
