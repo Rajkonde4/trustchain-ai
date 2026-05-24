@@ -65,6 +65,22 @@ from app.services.image_analysis_service import (
     analyze_image_quality
 )
 
+from app.services.vision_analysis_service import (
+
+    detect_blur,
+
+    detect_document_contour,
+
+    detect_screenshot,
+
+    analyze_brightness,
+
+    analyze_edge_density,
+
+    detect_text_regions,
+
+    detect_suspicious_crop
+)
 router = APIRouter()
 
 # =========================
@@ -125,7 +141,90 @@ async def upload_file(
 
     contents = await file.read()
 
-     # =========================
+            # =========================
+    # BLUR ANALYSIS
+    # =========================
+
+    blur_analysis = detect_blur(
+        contents
+    )
+
+    # =========================
+    # DOCUMENT CONTOUR ANALYSIS
+    # =========================
+
+    contour_analysis = detect_document_contour(
+        contents
+    )
+
+    # =========================
+    # BLUR ANALYSIS
+    # =========================
+
+    blur_analysis = detect_blur(
+        contents
+    )
+
+    # =========================
+    # CONTOUR ANALYSIS
+    # =========================
+
+    contour_analysis = detect_document_contour(
+        contents
+    )
+
+    # =========================
+    # SCREENSHOT ANALYSIS
+    # =========================
+
+    screenshot_analysis = detect_screenshot(
+        contents
+    )
+
+    # =========================
+    # BRIGHTNESS ANALYSIS
+    # =========================
+
+    brightness_analysis = analyze_brightness(
+        contents
+    )
+
+    # =========================
+    # EDGE ANALYSIS
+    # =========================
+
+    edge_analysis = analyze_edge_density(
+        contents
+    )
+
+    # =========================
+    # TEXT REGION ANALYSIS
+    # =========================
+
+    text_region_analysis = detect_text_regions(
+        contents
+    )
+
+    # =========================
+    # COMBINED VISION ANALYSIS
+    # =========================
+
+    vision_analysis = {
+
+        "blur_analysis": blur_analysis,
+
+        "contour_analysis": contour_analysis,
+
+        "screenshot_analysis": screenshot_analysis,
+
+        "brightness_analysis": brightness_analysis,
+
+        "edge_analysis": edge_analysis,
+
+        "text_region_analysis": text_region_analysis
+    }
+
+    # =========================
     # IMAGE QUALITY ANALYSIS
     # =========================
 
@@ -236,6 +335,8 @@ async def upload_file(
         blur_score=blur_score,
 
         quality_status=quality_status,
+
+        vision_analysis=vision_analysis,
     )
 
     fraud_risk = analysis["fraud_risk"]

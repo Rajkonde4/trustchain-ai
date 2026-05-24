@@ -26,7 +26,9 @@ def analyze_document(
 
     blur_score,
 
-    quality_status
+    quality_status,
+
+    vision_analysis
 ):
 
     risk_score = 0
@@ -65,6 +67,51 @@ def analyze_document(
 
         reasons.append(
             "Very low OCR text extracted"
+        )
+
+        # =========================
+    # OCR QUALITY ANALYSIS
+    # =========================
+
+    text_length = len(extracted_text)
+
+    word_count = len(
+        extracted_text.split()
+    )
+
+    # VERY LOW TEXT
+
+    if text_length < 50:
+
+        risk_score += 25
+
+        reasons.append(
+            "Very low OCR text extracted"
+        )
+
+    # LOW WORD COUNT
+
+    if word_count < 10:
+
+        risk_score += 15
+
+        reasons.append(
+            "Document readability is poor"
+        )
+
+    # SUSPICIOUS OCR QUALITY
+
+    if (
+
+        text_length > 0
+
+        and word_count <= 3
+    ):
+
+        risk_score += 20
+
+        reasons.append(
+            "OCR quality appears suspiciously low"
         )
 
     # LOW WORD COUNT
@@ -212,7 +259,7 @@ def analyze_document(
             "Some important fields missing"
         )
 
-        # =========================
+    # =========================
     # PAN FORMAT VALIDATION
     # =========================
 
@@ -299,6 +346,85 @@ def analyze_document(
             "Blurry image quality detected"
         )
 
+
+        # =========================
+    # BLUR ANALYSIS
+    # =========================
+
+    if vision_analysis["blur_analysis"]["is_blurry"]:
+
+        risk_score += 25
+
+        reasons.append(
+
+            vision_analysis["blur_analysis"]["reason"]
+        )
+
+    # =========================
+    # DOCUMENT CONTOUR ANALYSIS
+    # =========================
+
+    if not vision_analysis["contour_analysis"]["document_detected"]:
+
+        risk_score += 20
+
+        reasons.append(
+
+            vision_analysis["contour_analysis"]["reason"]
+        )
+
+    # =========================
+    # SCREENSHOT ANALYSIS
+    # =========================
+
+    if vision_analysis["screenshot_analysis"]["is_screenshot"]:
+
+        risk_score += 20
+
+        reasons.append(
+
+            vision_analysis["screenshot_analysis"]["reason"]
+        )
+
+    # =========================
+    # BRIGHTNESS ANALYSIS
+    # =========================
+
+    if vision_analysis["brightness_analysis"]["is_dark"]:
+
+        risk_score += 15
+
+        reasons.append(
+
+            vision_analysis["brightness_analysis"]["reason"]
+        )
+
+    # =========================
+    # EDGE DENSITY ANALYSIS
+    # =========================
+
+    if vision_analysis["edge_analysis"]["low_edges"]:
+
+        risk_score += 15
+
+        reasons.append(
+
+            vision_analysis["edge_analysis"]["reason"]
+        )
+
+        # =========================
+    # TEXT REGION ANALYSIS
+    # =========================
+
+    if not vision_analysis["text_region_analysis"]["text_regions_detected"]:
+
+        risk_score += 20
+
+        reasons.append(
+
+            vision_analysis["text_region_analysis"]["reason"]
+        )
+
     # =========================
     # FINAL FRAUD RISK
     # =========================
@@ -338,3 +464,4 @@ def analyze_document(
 
         "reasons": reasons
     }
+
